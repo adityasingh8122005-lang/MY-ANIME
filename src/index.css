@@ -1,0 +1,25 @@
+@import "tailwindcss";
+
+@theme {
+  --color-accent: #8b5cf6;
+  --color-accent-hover: #7c3aed;
+  --color-dark-base: #09090b;
+  --color-dark-surface: #18181b;
+  --color-dark-elevated: #27272a;
+}
+
+@layer base {
+  body {
+    @apply bg-dark-base text-zinc-100 antialiased;
+  }
+}
+
+@layer utilities {
+  .no-scrollbar::-webkit-scrollbar {
+    display: none;
+  }
+  .no-scrollbar {
+    -ms-overflow-style: none;
+    scrollbar-width: none;
+  }
+}
