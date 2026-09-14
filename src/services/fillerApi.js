@@ -1,13 +1,8 @@
 /**
  * Anime Filler List API Interface
- * 
- * Note: Anime Filler List currently does NOT offer a public, legitimate JSON API.
- * Scraping their HTML is fragile and unpermitted.
- * This service interface is built so it can be seamlessly integrated in the future 
- * if a legitimate structured data source becomes available.
+ * Scrapes animefillerlist.com via a CORS proxy to get canon/filler counts.
  */
 
-// Supported Episode Classifications:
 export const FILLER_STATUS = {
   CANON: 'Canon',
   FILLER: 'Filler',
@@ -16,42 +11,71 @@ export const FILLER_STATUS = {
   UNKNOWN: 'Unknown'
 };
 
-/**
- * Attempts to map a MAL ID to a Filler Data Source ID.
- * Since no reliable mapping exists currently, this returns null.
- */
-export async function getFillerSourceMapping(malId) {
-  // TODO: Implement legitimate MAL -> AnimeFillerList mapping when available
-  return null;
-}
+export async function getAnimeFillerStats(title, englishTitle) {
+  const trySlug = async (str) => {
+    if (!str) return null;
+    const slug = str.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)/g, '');
+    try {
+      const res = await fetch(`https://api.allorigins.win/get?url=${encodeURIComponent('https://www.animefillerlist.com/shows/' + slug)}`);
+      if (!res.ok) return null;
+      const data = await res.json();
+      if (!data.contents || data.contents.includes("Page not found")) return null;
+      return parseFillerHtml(data.contents);
+    } catch(e) {
+      return null;
+    }
+  }
 
-/**
- * Gets episode-level filler classifications for an anime.
- * Always returns UNKNOWN currently to prevent data fabrication.
- * 
- * Future return format:
- * {
- *   1: FILLER_STATUS.CANON,
- *   2: FILLER_STATUS.FILLER,
- *   ...
- * }
- */
-export async function getEpisodeFillerData(malId) {
-  const mapping = await getFillerSourceMapping(malId);
-  if (!mapping) {
-    return null; // Signals data unavailable
+  let result = await trySlug(englishTitle);
+  if (!result) result = await trySlug(title);
+  
+  if (!result && englishTitle && englishTitle.includes('Season')) {
+     result = await trySlug(englishTitle.split('Season')[0].trim());
   }
   
-  // Future implementation here...
-  return null;
+  return result;
 }
 
-/**
- * Helper to determine the status of a specific episode safely.
- */
-export function getSingleEpisodeFillerStatus(fillerData, episodeNumber) {
-  if (!fillerData || !fillerData[episodeNumber]) {
-    return FILLER_STATUS.UNKNOWN;
-  }
-  return fillerData[episodeNumber];
+function parseFillerHtml(html) {
+  const extractCount = (className) => {
+    const sectionRegex = new RegExp(`class="${className}"[\\s\\S]*?class="Episodes">([\\s\\S]*?)<\\/span>`, 'i');
+    const match = html.match(sectionRegex);
+    if (!match) return 0;
+    
+    const ranges = match[1].match(/>\\s*(\\d+(?:-\\d+)?)\\s*</g);
+    if (!ranges) return 0;
+    
+    let count = 0;
+    for (let r of ranges) {
+      const text = r.replace(/[><]/g, '').trim();
+      if (text.includes('-')) {
+        const [start, end] = text.split('-').map(Number);
+        count += (end - start + 1);
+      } else {
+        count += 1;
+      }
+    }
+    return count;
+  };
+
+  const mangaCanon = extractCount('manga_canon');
+  const mixed = extractCount('mixed_canon\\\\/filler');
+  const filler = extractCount('filler');
+  const animeCanon = extractCount('anime_canon');
+
+  const total = mangaCanon + mixed + filler + animeCanon;
+  if (total === 0) return null;
+
+  return {
+    canon: mangaCanon + animeCanon,
+    mixed,
+    filler,
+    total,
+    fillerPercentage: Math.round((filler / total) * 100),
+    canonPercentage: Math.round(((mangaCanon + animeCanon) / total) * 100)
+  };
 }
+
+export async function getFillerSourceMapping(malId) { return null; }
+export async function getEpisodeFillerData(malId) { return null; }
+export function getSingleEpisodeFillerStatus(fillerData, episodeNumber) { return FILLER_STATUS.UNKNOWN; }

@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react';
 import { useParams, Link } from 'react-router-dom';
 import { getAnimeDetails, getAnimeEpisodes } from '../services/jikanApi';
 import { getUserAnime, updateUserAnime, removeUserAnime, addWatchHistory, getWatchHistory, updateWatchHistory, deleteWatchHistory } from '../services/userService';
-import { getEpisodeFillerData, getSingleEpisodeFillerStatus, FILLER_STATUS } from '../services/fillerApi';
+import { getEpisodeFillerData, getSingleEpisodeFillerStatus, FILLER_STATUS, getAnimeFillerStats } from '../services/fillerApi';
 import { getImdbRating } from '../services/imdbApi';
 import { Loader2, ArrowLeft, ExternalLink, Calendar, History, Trash2, CheckCircle, PlayCircle, List, PauseCircle, XCircle, Plus, Edit2 } from 'lucide-react';
 
@@ -25,6 +25,7 @@ export default function AnimeDetailsPage() {
   const [imdbScore, setImdbScore] = useState(null);
   const [episodesList, setEpisodesList] = useState([]);
   const [fillerData, setFillerData] = useState(null);
+  const [fillerStats, setFillerStats] = useState(null);
   const [episodesLoading, setEpisodesLoading] = useState(false);
   const [episodeFilter, setEpisodeFilter] = useState('All');
 
@@ -43,6 +44,11 @@ export default function AnimeDetailsPage() {
         setUserAnime(userData);
         setHistory(historyData);
         setImdbScore(imdb);
+
+        // Fetch filler stats
+        getAnimeFillerStats(details.title, details.englishTitle).then(stats => {
+          setFillerStats(stats);
+        }).catch(() => null);
 
         // Fetch episodes in background so it doesn't block main render
         setEpisodesLoading(true);
@@ -333,6 +339,37 @@ export default function AnimeDetailsPage() {
                   <li key={i}>{title}</li>
                 ))}
               </ul>
+            </div>
+          )}
+
+          {fillerStats && (
+            <div className="mb-8">
+              <h3 className="text-lg font-semibold text-white mb-3 border-b border-zinc-800 pb-2 flex items-center justify-between">
+                Filler Statistics
+                <a href={`https://www.animefillerlist.com/shows/${(anime.englishTitle || anime.title).toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)/g, '')}`} target="_blank" rel="noreferrer" className="text-xs font-normal text-accent hover:underline flex items-center gap-1">
+                  View Source <ExternalLink size={12} />
+                </a>
+              </h3>
+              <div className="bg-dark-surface border border-zinc-800 rounded-lg p-4 flex gap-4 text-center divide-x divide-zinc-800">
+                <div className="flex-1 flex flex-col items-center">
+                   <span className="text-2xl font-bold text-green-400">{fillerStats.canon}</span>
+                   <span className="text-[10px] text-zinc-500 uppercase font-bold mt-1 tracking-wider">Canon</span>
+                </div>
+                {fillerStats.mixed > 0 && (
+                  <div className="flex-1 flex flex-col items-center">
+                     <span className="text-2xl font-bold text-yellow-400">{fillerStats.mixed}</span>
+                     <span className="text-[10px] text-zinc-500 uppercase font-bold mt-1 tracking-wider">Mixed</span>
+                  </div>
+                )}
+                <div className="flex-1 flex flex-col items-center">
+                   <span className="text-2xl font-bold text-red-400">{fillerStats.filler}</span>
+                   <span className="text-[10px] text-zinc-500 uppercase font-bold mt-1 tracking-wider">Filler</span>
+                </div>
+                <div className="flex-1 flex flex-col items-center bg-zinc-900/50 rounded -my-2 py-2">
+                   <span className="text-2xl font-bold text-white">{fillerStats.fillerPercentage}%</span>
+                   <span className="text-[10px] text-zinc-500 uppercase font-bold mt-1 tracking-wider">Filler %</span>
+                </div>
+              </div>
             </div>
           )}
 
