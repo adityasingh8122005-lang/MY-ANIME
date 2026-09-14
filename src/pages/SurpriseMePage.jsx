@@ -1,12 +1,12 @@
 import { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
-import { getUserAnime } from '../services/userService';
+import { getAllUserAnime } from '../services/userService';
 import { Dices, Loader2 } from 'lucide-react';
 
 const ANILIST_QUERY = `
-query ($page: Int, $genre: String, $format: MediaFormat) {
+query ($page: Int, $genre: String, $format: MediaFormat, $status: MediaStatus) {
   Page(page: $page, perPage: 50) {
-    media(type: ANIME, genre: $genre, format: $format, sort: SCORE_DESC, isAdult: false) {
+    media(type: ANIME, genre: $genre, format: $format, status: $status, sort: SCORE_DESC, isAdult: false) {
       idMal
       title { romaji english }
       coverImage { large }
@@ -25,13 +25,12 @@ const ALL_GENRES = [
 ];
 
 export default function SurpriseMePage() {
-  const [isInitialLoad, setIsInitialLoad] = useState(true);
   const [isRolling, setIsRolling] = useState(false);
-  const [localCollection, setLocalCollection] = useState([]);
   
   // Filters
   const [maxEpisodes, setMaxEpisodes] = useState('Any');
   const [genreFilter, setGenreFilter] = useState('Any');
+  const [airingStatus, setAiringStatus] = useState('Any');
   
   // Advanced X/Y IMDb Filter (Using AniList averageScore as proxy)
   const [imdbMinRating, setImdbMinRating] = useState('Any');
@@ -41,11 +40,6 @@ export default function SurpriseMePage() {
   const [selectedAnime, setSelectedAnime] = useState(null);
   const [matchReason, setMatchReason] = useState('');
   const [error, setError] = useState(null);
-
-  useEffect(() => {
-    setLocalCollection(getUserAnime());
-    setIsInitialLoad(false);
-  }, []);
 
   const handleSurpriseMe = async () => {
     setIsRolling(true);
@@ -61,6 +55,10 @@ export default function SurpriseMePage() {
       if (genreFilter !== 'Any') {
         variables.genre = genreFilter;
       }
+      
+      if (airingStatus !== 'Any') {
+        variables.status = airingStatus;
+      }
 
       const res = await fetch('https://graphql.anilist.co', {
         method: 'POST',
@@ -74,6 +72,10 @@ export default function SurpriseMePage() {
       if (!res.ok) throw new Error("Failed to reach AniList");
 
       const json = await res.json();
+      if (!json.data || !json.data.Page || !json.data.Page.media) {
+         throw new Error("Invalid API Response");
+      }
+      
       let list = json.data.Page.media.filter(a => a.idMal);
 
       // Filter by max episodes
@@ -89,7 +91,6 @@ export default function SurpriseMePage() {
       }
 
       if (list.length === 0) {
-        // Fallback: if random page had no matches, maybe they are too strict
         setError("No anime found matching these strict global filters on this roll. Try rolling again or loosening criteria.");
         setIsRolling(false);
         return;
@@ -105,10 +106,12 @@ export default function SurpriseMePage() {
           poster: randomAnime.coverImage?.large,
           episodes: randomAnime.episodes,
           genres: randomAnime.genres || [],
+          status: randomAnime.status
         }
       };
 
       // Check if user has it locally
+      const localCollection = await getAllUserAnime(false);
       const localAnime = localCollection.find(a => a.malId === randomAnime.idMal);
       if (localAnime) {
         formatted.personalRating = localAnime.personalRating;
@@ -116,6 +119,7 @@ export default function SurpriseMePage() {
       }
 
       const reasons = [];
+      if (airingStatus !== 'Any') reasons.push(airingStatus === 'FINISHED' ? 'Completed' : 'Ongoing');
       if (maxEpisodes !== '' && maxEpisodes !== 'Any') reasons.push(`≤ ${maxEpisodes} eps`);
       if (genreFilter !== 'Any') reasons.push(genreFilter);
       if (imdbMinRating !== 'Any') reasons.push(`${imdbMinPercentage}% > ${imdbMinRating}⭐ (Global)`);
@@ -130,10 +134,8 @@ export default function SurpriseMePage() {
     setIsRolling(false);
   };
 
-  if (isInitialLoad) return null;
-
   return (
-    <div className="max-w-4xl mx-auto">
+    <div className="max-w-4xl mx-auto pb-12">
       <div className="mb-8 text-center">
         <h1 className="text-3xl font-bold text-white mb-2 flex items-center justify-center gap-3">
           <Dices className="text-accent" size={32} /> Surprise Me
@@ -143,7 +145,20 @@ export default function SurpriseMePage() {
 
       {/* Filter Controls */}
       <div className="bg-dark-surface border border-zinc-800 rounded-lg p-6 mb-8 mx-auto">
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-6">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 mb-6">
+          
+          <div>
+            <label className="text-xs text-zinc-500 font-semibold uppercase mb-2 block">Airing Status</label>
+            <select 
+              value={airingStatus} 
+              onChange={e => setAiringStatus(e.target.value)}
+              className="w-full bg-dark-base border border-zinc-700 rounded p-2 text-white text-sm focus:outline-none focus:border-accent"
+            >
+              <option value="Any">Any</option>
+              <option value="FINISHED">Completed</option>
+              <option value="RELEASING">Ongoing</option>
+            </select>
+          </div>
           
           <div>
             <label className="text-xs text-zinc-500 font-semibold uppercase mb-2 block">Max Episodes</label>
@@ -227,11 +242,16 @@ export default function SurpriseMePage() {
         <div className="bg-dark-surface border border-zinc-800 rounded-lg p-6 max-w-2xl mx-auto animate-in fade-in zoom-in duration-300">
           <div className="flex flex-col sm:flex-row gap-6">
             <div className="w-full sm:w-48 shrink-0">
-              <div className="aspect-[2/3] rounded overflow-hidden bg-zinc-900 border border-zinc-700">
+              <div className="aspect-[2/3] rounded overflow-hidden bg-zinc-900 border border-zinc-700 relative">
                 {selectedAnime.metadata?.poster ? (
                   <img src={selectedAnime.metadata.poster} alt={selectedAnime.metadata.title} className="w-full h-full object-cover" />
                 ) : (
                   <div className="w-full h-full flex items-center justify-center text-zinc-600">No Image</div>
+                )}
+                {selectedAnime.metadata?.status && (
+                  <div className="absolute top-2 right-2 bg-dark-base/90 backdrop-blur-sm text-[10px] font-bold px-2 py-1 rounded text-white border border-zinc-700">
+                    {selectedAnime.metadata.status === 'RELEASING' ? 'ONGOING' : 'COMPLETED'}
+                  </div>
                 )}
               </div>
             </div>
