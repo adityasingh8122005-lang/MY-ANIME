@@ -207,16 +207,18 @@ export default function AnimeDetailsPage() {
           </div>
           
           <div className="mt-4 flex flex-col gap-3">
-            {!userAnime ? (
+            {(!userAnime || !userAnime.franchiseId) && (
               <button 
                 onClick={handleAddFranchise}
                 disabled={isAddingFranchise}
-                className="flex items-center justify-center gap-2 w-full py-3 bg-accent hover:bg-accent-hover disabled:bg-accent/50 text-white rounded-lg transition-colors font-semibold"
+                className="flex items-center justify-center gap-2 w-full py-3 bg-accent hover:bg-accent-hover disabled:bg-accent/50 text-white rounded-lg transition-colors font-semibold shadow-lg shadow-accent/20 border border-accent"
               >
                 {isAddingFranchise ? <Loader2 size={18} className="animate-spin" /> : <Plus size={18} />} 
                 {isAddingFranchise ? 'Building Franchise...' : 'Add Entire Franchise'}
               </button>
-            ) : (
+            )}
+
+            {userAnime ? (
               <div className="bg-dark-surface border border-zinc-800 rounded-lg p-4 flex flex-col gap-4">
                 <div>
                   <label className="text-xs text-zinc-500 font-semibold uppercase mb-1 block">Status</label>
