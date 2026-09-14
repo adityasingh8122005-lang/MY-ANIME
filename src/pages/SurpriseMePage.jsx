@@ -1,22 +1,41 @@
-import { useState, useEffect, useMemo } from 'react';
+import { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
-import { getAllUserAnime } from '../services/userService';
+import { getUserAnime } from '../services/userService';
 import { Dices, Loader2 } from 'lucide-react';
 
+const ANILIST_QUERY = `
+query ($page: Int, $genre: String, $format: MediaFormat) {
+  Page(page: $page, perPage: 50) {
+    media(type: ANIME, genre: $genre, format: $format, sort: SCORE_DESC, isAdult: false) {
+      idMal
+      title { romaji english }
+      coverImage { large }
+      episodes
+      status
+      genres
+      averageScore
+    }
+  }
+}
+`;
+
+const ALL_GENRES = [
+  "Action", "Adventure", "Comedy", "Drama", "Fantasy", "Horror", "Mahou Shoujo", 
+  "Mecha", "Music", "Mystery", "Psychological", "Romance", "Sci-Fi", "Slice of Life", "Sports", "Supernatural", "Thriller"
+];
+
 export default function SurpriseMePage() {
-  const [collection, setCollection] = useState([]);
-  const [isLoading, setIsLoading] = useState(true);
+  const [isInitialLoad, setIsInitialLoad] = useState(true);
+  const [isRolling, setIsRolling] = useState(false);
+  const [localCollection, setLocalCollection] = useState([]);
   
   // Filters
-  const [statusFilter, setStatusFilter] = useState('Plan to Watch');
   const [maxEpisodes, setMaxEpisodes] = useState('Any');
-  const [progressFilter, setProgressFilter] = useState('Any');
   const [genreFilter, setGenreFilter] = useState('Any');
   
-  // Advanced X/Y IMDb Filter
+  // Advanced X/Y IMDb Filter (Using AniList averageScore as proxy)
   const [imdbMinRating, setImdbMinRating] = useState('Any');
-  const [imdbMinPercentage, setImdbMinPercentage] = useState('70'); // e.g. 70% of episodes must be > rating
-
+  const [imdbMinPercentage, setImdbMinPercentage] = useState('70');
   
   // Result
   const [selectedAnime, setSelectedAnime] = useState(null);
@@ -24,162 +43,108 @@ export default function SurpriseMePage() {
   const [error, setError] = useState(null);
 
   useEffect(() => {
-    async function load() {
-      setIsLoading(true);
-      try {
-        const data = await getAllUserAnime(true);
-        setCollection(data);
-      } catch (err) {
-        console.error(err);
-      } finally {
-        setIsLoading(false);
-      }
-    }
-    load();
+    setLocalCollection(getUserAnime());
+    setIsInitialLoad(false);
   }, []);
 
-  const availableGenres = useMemo(() => {
-    const genres = new Set();
-    collection.forEach(a => {
-      if (a.metadata?.genres) {
-        a.metadata.genres.forEach(g => genres.add(g));
-      }
-    });
-    return Array.from(genres).sort();
-  }, [collection]);
-
-  const handleSurpriseMe = () => {
+  const handleSurpriseMe = async () => {
+    setIsRolling(true);
     setError(null);
     setSelectedAnime(null);
-    setMatchReason('');
 
-    let eligible = collection;
-
-    // 1. Status Filter
-    if (statusFilter !== 'Any') {
-      eligible = eligible.filter(a => a.personalStatus === statusFilter);
-    }
-
-    // 2. Max Episodes Filter
-    if (maxEpisodes !== '') {
-      const limit = parseInt(maxEpisodes, 10);
-      if (!isNaN(limit)) {
-        eligible = eligible.filter(a => {
-          if (!a.metadata || !a.metadata.episodes) return false;
-          return a.metadata.episodes <= limit;
-        });
+    try {
+      // Pick a random page from the top 5 pages (~top 250 anime for the given filters)
+      // If we use strict filters, there might be fewer pages, so we fetch page 1-3.
+      const page = Math.floor(Math.random() * 3) + 1; 
+      const variables = { page, format: 'TV' };
+      
+      if (genreFilter !== 'Any') {
+        variables.genre = genreFilter;
       }
-    }
 
-    // 3. IMDb X/Y Filter (Simulated until backend is ready)
-    if (imdbMinRating !== 'Any') {
-      // NOTE: Since IMDb episode ratings require the Phase 16 Database backend, 
-      // this filter currently acts as a placeholder that allows the UI to exist 
-      // without breaking the app. We bypass actual dropping of anime here.
-      // Future: eligible = eligible.filter(a => a.imdbEpisodeStats?.pctAbove(imdbMinRating) >= imdbMinPercentage);
-    }
-
-    // 5. Genre Filter
-    if (genreFilter !== 'Any') {
-      eligible = eligible.filter(a => a.metadata?.genres?.includes(genreFilter));
-    }
-
-    // 6. Progress Filter
-    if (progressFilter !== 'Any') {
-      eligible = eligible.filter(a => {
-        const epsWatched = a.episodesWatched || 0;
-        const total = a.metadata?.episodes;
-        
-        if (progressFilter === 'Not Started') return epsWatched === 0;
-        
-        if (!total) return false; // Need total for % based filters
-        
-        const pct = (epsWatched / total) * 100;
-        
-        // Exact mutually exclusive boundaries
-        if (progressFilter === '1-25%') return pct > 0 && pct <= 25;
-        if (progressFilter === '25-75%') return pct > 25 && pct <= 75;
-        if (progressFilter === '75%+ (Not Finished)') return pct > 75 && pct < 100;
-        
-        const isOngoing = a.metadata?.status === 'Currently Airing';
-        const isFinished = a.metadata?.status === 'Finished Airing';
-
-        if (progressFilter === 'Caught Up') return pct === 100 && isOngoing;
-        if (progressFilter === 'Completed') return pct === 100 && isFinished;
-        
-        return false;
+      const res = await fetch('https://graphql.anilist.co', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Accept': 'application/json',
+        },
+        body: JSON.stringify({ query: ANILIST_QUERY, variables })
       });
+
+      if (!res.ok) throw new Error("Failed to reach AniList");
+
+      const json = await res.json();
+      let list = json.data.Page.media.filter(a => a.idMal);
+
+      // Filter by max episodes
+      if (maxEpisodes !== '' && maxEpisodes !== 'Any') {
+        const limit = parseInt(maxEpisodes, 10);
+        list = list.filter(a => a.episodes && a.episodes <= limit);
+      }
+
+      // Filter by IMDb rating proxy (AniList score 0-100)
+      if (imdbMinRating !== 'Any') {
+        const minScore = parseFloat(imdbMinRating) * 10;
+        list = list.filter(a => a.averageScore && a.averageScore >= minScore);
+      }
+
+      if (list.length === 0) {
+        // Fallback: if random page had no matches, maybe they are too strict
+        setError("No anime found matching these strict global filters on this roll. Try rolling again or loosening criteria.");
+        setIsRolling(false);
+        return;
+      }
+
+      // Pick random
+      const randomAnime = list[Math.floor(Math.random() * list.length)];
+
+      const formatted = {
+        malId: randomAnime.idMal,
+        metadata: {
+          title: randomAnime.title.english || randomAnime.title.romaji,
+          poster: randomAnime.coverImage?.large,
+          episodes: randomAnime.episodes,
+          genres: randomAnime.genres || [],
+        }
+      };
+
+      // Check if user has it locally
+      const localAnime = localCollection.find(a => a.malId === randomAnime.idMal);
+      if (localAnime) {
+        formatted.personalRating = localAnime.personalRating;
+        formatted.episodesWatched = localAnime.episodesWatched;
+      }
+
+      const reasons = [];
+      if (maxEpisodes !== '' && maxEpisodes !== 'Any') reasons.push(`≤ ${maxEpisodes} eps`);
+      if (genreFilter !== 'Any') reasons.push(genreFilter);
+      if (imdbMinRating !== 'Any') reasons.push(`${imdbMinPercentage}% > ${imdbMinRating}⭐ (Global)`);
+      setMatchReason(reasons.join(', ') || 'Global Random Pick');
+
+      setSelectedAnime(formatted);
+    } catch (err) {
+      console.error(err);
+      setError("Failed to fetch random anime from global database.");
     }
-
-    if (eligible.length === 0) {
-      setError("No anime in your collection matches these combined filters.");
-      return;
-    }
-
-    // Select Random
-    const randomIndex = Math.floor(Math.random() * eligible.length);
-    const chosen = eligible[randomIndex];
-    setSelectedAnime(chosen);
-
-    // Build a match reason string
-    const reasons = [];
-    if (statusFilter !== 'Any') reasons.push(chosen.personalStatus);
-    if (maxEpisodes !== '') reasons.push(`${chosen.metadata?.episodes} eps`);
-    if (genreFilter !== 'Any') reasons.push(genreFilter);
-    if (imdbMinRating !== 'Any') reasons.push(`${imdbMinPercentage}% > ${imdbMinRating}⭐ (Simulated)`);
-    setMatchReason(reasons.join(', ') || 'Random Pick');
+    
+    setIsRolling(false);
   };
 
-  if (isLoading) {
-    return (
-      <div className="flex justify-center items-center h-64">
-        <Loader2 size={32} className="animate-spin text-accent" />
-      </div>
-    );
-  }
-
-  if (collection.length === 0) {
-    return (
-      <div className="max-w-4xl mx-auto py-20 text-center border border-zinc-800 bg-dark-surface rounded-lg">
-        <Dices size={48} className="mx-auto text-zinc-600 mb-4" />
-        <h1 className="text-2xl font-bold text-white mb-2">Collection Empty</h1>
-        <p className="text-zinc-400 mb-6">You need to add anime to your collection before using Surprise Me.</p>
-        <Link to="/search" className="bg-accent hover:bg-accent-hover text-white px-6 py-2 rounded font-semibold transition-colors">
-          Search Anime
-        </Link>
-      </div>
-    );
-  }
+  if (isInitialLoad) return null;
 
   return (
-    <div className="max-w-4xl mx-auto pb-12">
-      <div className="text-center mb-8">
-        <h1 className="text-3xl font-bold text-white mb-4 flex items-center justify-center gap-3">
+    <div className="max-w-4xl mx-auto">
+      <div className="mb-8 text-center">
+        <h1 className="text-3xl font-bold text-white mb-2 flex items-center justify-center gap-3">
           <Dices className="text-accent" size={32} /> Surprise Me
         </h1>
-        <p className="text-zinc-400">Discover your next watch using advanced filters on your personal collection.</p>
+        <p className="text-zinc-400">Discover your next watch from the global anime database using advanced filters.</p>
       </div>
 
       {/* Filter Controls */}
       <div className="bg-dark-surface border border-zinc-800 rounded-lg p-6 mb-8 mx-auto">
-        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4 mb-6">
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-6">
           
-          <div>
-            <label className="text-xs text-zinc-500 font-semibold uppercase mb-2 block">Status</label>
-            <select 
-              value={statusFilter} 
-              onChange={e => setStatusFilter(e.target.value)}
-              className="w-full bg-dark-base border border-zinc-700 rounded p-2 text-white text-sm focus:outline-none focus:border-accent"
-            >
-              <option value="Any">Any</option>
-              <option value="Plan to Watch">Plan to Watch</option>
-              <option value="Watching">Watching</option>
-              <option value="Completed">Completed</option>
-              <option value="On Hold">On Hold</option>
-              <option value="Dropped">Dropped</option>
-            </select>
-          </div>
-
           <div>
             <label className="text-xs text-zinc-500 font-semibold uppercase mb-2 block">Max Episodes</label>
             <input 
@@ -190,6 +155,20 @@ export default function SurpriseMePage() {
               onChange={e => setMaxEpisodes(e.target.value)}
               className="w-full bg-dark-base border border-zinc-700 rounded p-2 text-white text-sm focus:outline-none focus:border-accent placeholder:text-zinc-600"
             />
+          </div>
+
+          <div>
+            <label className="text-xs text-zinc-500 font-semibold uppercase mb-2 block">Genre</label>
+            <select 
+              value={genreFilter} 
+              onChange={e => setGenreFilter(e.target.value)}
+              className="w-full bg-dark-base border border-zinc-700 rounded p-2 text-white text-sm focus:outline-none focus:border-accent"
+            >
+              <option value="Any">Any</option>
+              {ALL_GENRES.map(g => (
+                <option key={g} value={g}>{g}</option>
+              ))}
+            </select>
           </div>
 
           <div>
@@ -224,44 +203,15 @@ export default function SurpriseMePage() {
             </select>
           </div>
 
-          <div>
-            <label className="text-xs text-zinc-500 font-semibold uppercase mb-2 block">Progress</label>
-            <select 
-              value={progressFilter} 
-              onChange={e => setProgressFilter(e.target.value)}
-              className="w-full bg-dark-base border border-zinc-700 rounded p-2 text-white text-sm focus:outline-none focus:border-accent"
-            >
-              <option value="Any">Any</option>
-              <option value="Not Started">Not Started</option>
-              <option value="1-25%">1% - 25%</option>
-              <option value="25-75%">25% - 75%</option>
-              <option value="75%+ (Not Finished)">75%+ (Not Finished)</option>
-              <option value="Caught Up">Caught Up</option>
-              <option value="Completed">Completed</option>
-            </select>
-          </div>
-
-          <div>
-            <label className="text-xs text-zinc-500 font-semibold uppercase mb-2 block">Genre</label>
-            <select 
-              value={genreFilter} 
-              onChange={e => setGenreFilter(e.target.value)}
-              className="w-full bg-dark-base border border-zinc-700 rounded p-2 text-white text-sm focus:outline-none focus:border-accent"
-            >
-              <option value="Any">Any</option>
-              {availableGenres.map(g => (
-                <option key={g} value={g}>{g}</option>
-              ))}
-            </select>
-          </div>
-
         </div>
         
         <button 
           onClick={handleSurpriseMe}
-          className="w-full bg-accent hover:bg-accent-hover text-white py-3 rounded-lg font-bold text-lg transition-colors flex items-center justify-center gap-2 border border-accent/50"
+          disabled={isRolling}
+          className="w-full bg-accent hover:bg-accent-hover disabled:bg-accent/50 text-white py-3 rounded-lg font-bold text-lg transition-colors flex items-center justify-center gap-2 border border-accent/50"
         >
-          <Dices size={24} /> SURPRISE ME
+          {isRolling ? <Loader2 size={24} className="animate-spin" /> : <Dices size={24} />}
+          {isRolling ? 'ROLLING...' : 'SURPRISE ME'}
         </button>
       </div>
 
@@ -273,7 +223,7 @@ export default function SurpriseMePage() {
       )}
 
       {/* Result */}
-      {selectedAnime && (
+      {selectedAnime && !isRolling && (
         <div className="bg-dark-surface border border-zinc-800 rounded-lg p-6 max-w-2xl mx-auto animate-in fade-in zoom-in duration-300">
           <div className="flex flex-col sm:flex-row gap-6">
             <div className="w-full sm:w-48 shrink-0">
@@ -299,7 +249,9 @@ export default function SurpriseMePage() {
                 {selectedAnime.personalRating && (
                   <div className="text-sm text-accent font-medium"><span className="text-zinc-500">My Rating:</span> ⭐ {selectedAnime.personalRating}</div>
                 )}
-                <div className="text-sm text-zinc-300"><span className="text-zinc-500">Progress:</span> {selectedAnime.episodesWatched || 0} / {selectedAnime.metadata?.episodes || '?'}</div>
+                {selectedAnime.episodesWatched !== undefined && (
+                  <div className="text-sm text-zinc-300"><span className="text-zinc-500">Progress:</span> {selectedAnime.episodesWatched || 0} / {selectedAnime.metadata?.episodes || '?'}</div>
+                )}
               </div>
 
               {selectedAnime.metadata?.genres?.length > 0 && (

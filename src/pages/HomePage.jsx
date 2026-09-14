@@ -112,12 +112,6 @@ export default function HomePage() {
         emptyText="You aren't watching anything right now." 
       />
       <AnimeGrid 
-        animes={recentlyAdded} 
-        title="Recently Updated" 
-        icon={Clock} 
-        emptyText="No recent activity." 
-      />
-      <AnimeGrid 
         animes={planToWatch} 
         title="Plan to Watch" 
         icon={List} 
