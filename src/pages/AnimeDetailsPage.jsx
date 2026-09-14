@@ -94,7 +94,15 @@ export default function AnimeDetailsPage() {
   }, [id]);
 
   const handleStatusChange = async (status) => {
-    const updated = await updateUserAnime(id, { personalStatus: status });
+    const updates = { personalStatus: status };
+    
+    // Automatically maximize progress if marked as Completed
+    const maxEps = anime.episodes || fillerStats?.total || null;
+    if (status === 'Completed' && maxEps) {
+      updates.episodesWatched = maxEps;
+    }
+    
+    const updated = await updateUserAnime(id, updates);
     setUserAnime(updated);
   };
 
