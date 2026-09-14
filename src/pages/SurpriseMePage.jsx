@@ -10,9 +10,13 @@ export default function SurpriseMePage() {
   // Filters
   const [statusFilter, setStatusFilter] = useState('Plan to Watch');
   const [maxEpisodes, setMaxEpisodes] = useState('Any');
-  const [minMyRating, setMinMyRating] = useState('Any');
   const [progressFilter, setProgressFilter] = useState('Any');
   const [genreFilter, setGenreFilter] = useState('Any');
+  
+  // Advanced X/Y IMDb Filter
+  const [imdbMinRating, setImdbMinRating] = useState('Any');
+  const [imdbMinPercentage, setImdbMinPercentage] = useState('70'); // e.g. 70% of episodes must be > rating
+
   
   // Result
   const [selectedAnime, setSelectedAnime] = useState(null);
@@ -67,10 +71,12 @@ export default function SurpriseMePage() {
       }
     }
 
-    // 4. Min My Rating
-    if (minMyRating !== 'Any') {
-      const min = parseInt(minMyRating, 10);
-      eligible = eligible.filter(a => a.personalRating && a.personalRating >= min);
+    // 3. IMDb X/Y Filter (Simulated until backend is ready)
+    if (imdbMinRating !== 'Any') {
+      // NOTE: Since IMDb episode ratings require the Phase 16 Database backend, 
+      // this filter currently acts as a placeholder that allows the UI to exist 
+      // without breaking the app. We bypass actual dropping of anime here.
+      // Future: eligible = eligible.filter(a => a.imdbEpisodeStats?.pctAbove(imdbMinRating) >= imdbMinPercentage);
     }
 
     // 5. Genre Filter
@@ -120,6 +126,7 @@ export default function SurpriseMePage() {
     if (statusFilter !== 'Any') reasons.push(chosen.personalStatus);
     if (maxEpisodes !== '') reasons.push(`${chosen.metadata?.episodes} eps`);
     if (genreFilter !== 'Any') reasons.push(genreFilter);
+    if (imdbMinRating !== 'Any') reasons.push(`${imdbMinPercentage}% > ${imdbMinRating}⭐ (Simulated)`);
     setMatchReason(reasons.join(', ') || 'Random Pick');
   };
 
@@ -186,17 +193,34 @@ export default function SurpriseMePage() {
           </div>
 
           <div>
-            <label className="text-xs text-zinc-500 font-semibold uppercase mb-2 block">Min My Rating</label>
+            <label className="text-xs text-zinc-500 font-semibold uppercase mb-2 block">Min IMDb Rating (Ep)</label>
             <select 
-              value={minMyRating} 
-              onChange={e => setMinMyRating(e.target.value)}
+              value={imdbMinRating} 
+              onChange={e => setImdbMinRating(e.target.value)}
               className="w-full bg-dark-base border border-zinc-700 rounded p-2 text-white text-sm focus:outline-none focus:border-accent"
             >
               <option value="Any">Any</option>
-              <option value="10">10</option>
-              <option value="9">9+</option>
-              <option value="8">8+</option>
-              <option value="7">7+</option>
+              <option value="9.0">9.0+</option>
+              <option value="8.5">8.5+</option>
+              <option value="8.0">8.0+</option>
+              <option value="7.5">7.5+</option>
+              <option value="7.0">7.0+</option>
+            </select>
+          </div>
+
+          <div>
+            <label className="text-xs text-zinc-500 font-semibold uppercase mb-2 block">% of Episodes</label>
+            <select 
+              value={imdbMinPercentage} 
+              onChange={e => setImdbMinPercentage(e.target.value)}
+              disabled={imdbMinRating === 'Any'}
+              className="w-full bg-dark-base border border-zinc-700 rounded p-2 text-white text-sm focus:outline-none focus:border-accent disabled:opacity-50"
+            >
+              <option value="50">At least 50%</option>
+              <option value="70">At least 70%</option>
+              <option value="80">At least 80%</option>
+              <option value="90">At least 90%</option>
+              <option value="100">100%</option>
             </select>
           </div>
 
