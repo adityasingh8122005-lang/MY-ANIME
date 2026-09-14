@@ -1,9 +1,11 @@
 import { useState, useEffect } from 'react';
 import { useParams, Link } from 'react-router-dom';
 import { getAnimeDetails, getAnimeEpisodes } from '../services/jikanApi';
-import { getUserAnime, updateUserAnime, removeUserAnime, addWatchHistory, getWatchHistory, updateWatchHistory, deleteWatchHistory } from '../services/userService';
+import { getUserAnime, updateUserAnime, removeUserAnime, addWatchHistory, getWatchHistory, updateWatchHistory, deleteWatchHistory, addUserAnime } from '../services/userService';
 import { getEpisodeFillerData, getSingleEpisodeFillerStatus, FILLER_STATUS, getAnimeFillerStats } from '../services/fillerApi';
 import { getImdbRating } from '../services/imdbApi';
+import { getFranchiseData } from '../services/franchiseApi';
+import { addFranchiseToDb } from '../services/franchiseService';
 import { Loader2, ArrowLeft, ExternalLink, Calendar, History, Trash2, CheckCircle, PlayCircle, List, PauseCircle, XCircle, Plus, Edit2 } from 'lucide-react';
 
 export default function AnimeDetailsPage() {
@@ -12,7 +14,28 @@ export default function AnimeDetailsPage() {
   const [userAnime, setUserAnime] = useState(null);
   const [history, setHistory] = useState([]);
   const [isLoading, setIsLoading] = useState(true);
+  const [isAddingFranchise, setIsAddingFranchise] = useState(false);
   const [error, setError] = useState(null);
+
+  const handleAddFranchise = async () => {
+    setIsAddingFranchise(true);
+    try {
+      const franchiseData = await getFranchiseData(id);
+      if (franchiseData) {
+        await addFranchiseToDb(franchiseData);
+        // Refresh local state
+        const local = await getUserAnime(id);
+        setUserAnime(local);
+      } else {
+        // Fallback to basic if franchise fails
+        const added = await updateUserAnime(id, { personalStatus: 'Plan to Watch' });
+        setUserAnime(added);
+      }
+    } catch (err) {
+      console.error(err);
+    }
+    setIsAddingFranchise(false);
+  };
 
   // History form state
   const [historyDate, setHistoryDate] = useState(new Date().toISOString().split('T')[0]);
@@ -186,10 +209,12 @@ export default function AnimeDetailsPage() {
           <div className="mt-4 flex flex-col gap-3">
             {!userAnime ? (
               <button 
-                onClick={() => handleStatusChange('Plan to Watch')}
-                className="flex items-center justify-center gap-2 w-full py-3 bg-accent hover:bg-accent-hover text-white rounded-lg transition-colors font-semibold"
+                onClick={handleAddFranchise}
+                disabled={isAddingFranchise}
+                className="flex items-center justify-center gap-2 w-full py-3 bg-accent hover:bg-accent-hover disabled:bg-accent/50 text-white rounded-lg transition-colors font-semibold"
               >
-                <Plus size={18} /> Add to My Anime
+                {isAddingFranchise ? <Loader2 size={18} className="animate-spin" /> : <Plus size={18} />} 
+                {isAddingFranchise ? 'Building Franchise...' : 'Add Entire Franchise'}
               </button>
             ) : (
               <div className="bg-dark-surface border border-zinc-800 rounded-lg p-4 flex flex-col gap-4">

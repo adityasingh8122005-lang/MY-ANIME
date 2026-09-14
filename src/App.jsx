@@ -7,6 +7,7 @@ import MyAnimePage from './pages/MyAnimePage.jsx';
 import SettingsPage from './pages/SettingsPage.jsx';
 import StatisticsPage from './pages/StatisticsPage.jsx';
 import SurpriseMePage from './pages/SurpriseMePage.jsx';
+import FranchiseDetailsPage from './pages/FranchiseDetailsPage.jsx';
 import clsx from 'clsx';
 
 function NavItem({ to, icon: Icon, label }) {
@@ -53,6 +54,7 @@ function App() {
             <Route path="/surprise-me" element={<SurpriseMePage />} />
             <Route path="/settings" element={<SettingsPage />} />
             <Route path="/anime/:id" element={<AnimeDetailsPage />} />
+            <Route path="/franchise/:id" element={<FranchiseDetailsPage />} />
           </Routes>
         </main>
       </div>
