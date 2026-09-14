@@ -554,13 +554,13 @@ export default function AnimeDetailsPage() {
             <h3 className="text-lg font-semibold text-white mb-4 border-b border-zinc-800 pb-2">Series Graph</h3>
             <div className="bg-zinc-900 border border-zinc-800 rounded-lg overflow-hidden flex flex-col h-[600px] relative">
               <iframe 
-                src={`https://seriesgraph.com/search?q=${encodeURIComponent(anime.title)}`}
+                src="https://seriesgraph.com/"
                 className="w-full h-full border-0 absolute inset-0"
                 title="Series Graph"
                 sandbox="allow-scripts allow-same-origin allow-popups allow-forms"
               />
             </div>
-            <p className="text-xs text-zinc-500 mt-2 text-center">Data provided by SeriesGraph.com. Click a search result inside the window to view the graph.</p>
+            <p className="text-xs text-zinc-500 mt-2 text-center">Use the search bar inside the window to find "{anime.title}".</p>
           </div>
 
         </div>
