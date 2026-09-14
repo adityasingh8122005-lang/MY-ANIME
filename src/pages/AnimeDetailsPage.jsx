@@ -162,8 +162,9 @@ export default function AnimeDetailsPage() {
   }
 
   // Calculate if caught up
-  const isCaughtUp = anime.episodes && userAnime?.episodesWatched === anime.episodes && anime.status !== "Finished Airing";
-  const isFinished = anime.episodes && userAnime?.episodesWatched === anime.episodes && anime.status === "Finished Airing";
+  const displayEpisodes = anime.episodes || fillerStats?.total || null;
+  const isCaughtUp = displayEpisodes && userAnime?.episodesWatched === displayEpisodes && anime.status !== "Finished Airing";
+  const isFinished = displayEpisodes && userAnime?.episodesWatched === displayEpisodes && anime.status === "Finished Airing";
 
   return (
     <div className="max-w-5xl mx-auto pb-12">
@@ -217,15 +218,15 @@ export default function AnimeDetailsPage() {
                     <input 
                       type="number" 
                       min="0"
-                      max={anime.episodes || ''}
+                      max={displayEpisodes || ''}
                       value={userAnime.episodesWatched || 0}
                       onChange={(e) => handleEpisodesChange(e.target.value)}
                       className="w-16 bg-dark-base border border-zinc-700 rounded p-2 text-white text-sm focus:border-accent focus:outline-none text-center"
                     />
-                    <span className="text-zinc-400">/ {anime.episodes || '?'}</span>
+                    <span className="text-zinc-400">/ {displayEpisodes || '?'}</span>
                     <button 
                       onClick={() => handleEpisodesChange((userAnime.episodesWatched || 0) + 1)}
-                      disabled={anime.episodes && userAnime.episodesWatched >= anime.episodes}
+                      disabled={displayEpisodes && userAnime.episodesWatched >= displayEpisodes}
                       className="ml-auto p-2 bg-dark-elevated hover:bg-zinc-700 rounded border border-zinc-700 disabled:opacity-50 transition-colors text-white"
                       title="Increment Episode"
                     >
@@ -298,7 +299,7 @@ export default function AnimeDetailsPage() {
             </div>
             <div className="flex flex-col border border-zinc-800 rounded bg-dark-surface p-3 min-w-[100px] items-center">
               <span className="text-xs text-zinc-500 uppercase font-bold tracking-wider mb-1">Episodes</span>
-              <span className="text-sm font-medium text-white">{anime.episodes || '?'}</span>
+              <span className="text-sm font-medium text-white">{displayEpisodes || '?'}</span>
             </div>
             <div className="flex flex-col border border-zinc-800 rounded bg-dark-surface p-3 min-w-[100px] items-center">
               <span className="text-xs text-zinc-500 uppercase font-bold tracking-wider mb-1">Season</span>
