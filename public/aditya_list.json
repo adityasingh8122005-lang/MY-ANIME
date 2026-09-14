@@ -1,0 +1,452 @@
+[
+  {
+    "title": "Naruto",
+    "malId": 1735,
+    "status": "Completed"
+  },
+  {
+    "title": "Demon slayer",
+    "malId": 38000,
+    "status": "Completed"
+  },
+  {
+    "title": "Death note",
+    "malId": 1535,
+    "status": "Completed"
+  },
+  {
+    "title": "Jujutsu kaisen",
+    "malId": 40748,
+    "status": "Completed"
+  },
+  {
+    "title": "Tokyo revengers",
+    "malId": 42249,
+    "status": "Completed"
+  },
+  {
+    "title": "Attack on Titan",
+    "malId": 16498,
+    "status": "Completed"
+  },
+  {
+    "title": "Tokyo ghoul",
+    "malId": 22319,
+    "status": "Completed"
+  },
+  {
+    "title": "Black Clover",
+    "malId": 34572,
+    "status": "Completed"
+  },
+  {
+    "title": "Classroom of the elite",
+    "malId": 35507,
+    "status": "Completed"
+  },
+  {
+    "title": "Chainsaw man",
+    "malId": 44511,
+    "status": "Completed"
+  },
+  {
+    "title": "Death parade",
+    "malId": 28223,
+    "status": "Completed"
+  },
+  {
+    "title": "Blue lock",
+    "malId": 49596,
+    "status": "Completed"
+  },
+  {
+    "title": "Solo leveling",
+    "malId": 52299,
+    "status": "Completed"
+  },
+  {
+    "title": "tomodachi game",
+    "malId": 50273,
+    "status": "Completed"
+  },
+  {
+    "title": "Haikyu",
+    "malId": 20583,
+    "status": "Completed"
+  },
+  {
+    "title": "Jigokuraku",
+    "malId": 46569,
+    "status": "Completed"
+  },
+  {
+    "title": "One piece",
+    "malId": 21,
+    "status": "Completed"
+  },
+  {
+    "title": "Erased",
+    "malId": 31043,
+    "status": "Completed"
+  },
+  {
+    "title": "Rising of the shield hero",
+    "malId": 35790,
+    "status": "Completed"
+  },
+  {
+    "title": "Wind Breaker",
+    "malId": 54900,
+    "status": "Completed"
+  },
+  {
+    "title": "Kaiju No. 8",
+    "malId": 52588,
+    "status": "Completed"
+  },
+  {
+    "title": "Dr stone",
+    "malId": 38691,
+    "status": "Completed"
+  },
+  {
+    "title": "Run with the wind",
+    "malId": 37965,
+    "status": "Completed"
+  },
+  {
+    "title": "Record of Ragnarok",
+    "malId": 44942,
+    "status": "Completed"
+  },
+  {
+    "title": "Kuroko No Basket",
+    "malId": 11771,
+    "status": "Completed"
+  },
+  {
+    "title": "Bleach",
+    "malId": 269,
+    "status": "Completed"
+  },
+  {
+    "title": "The Dreaming Boy Is a Realist",
+    "malId": 53632,
+    "status": "Completed"
+  },
+  {
+    "title": "Bleach TYBW",
+    "malId": 269,
+    "status": "Completed"
+  },
+  {
+    "title": "91 Days",
+    "malId": 32998,
+    "status": "Completed"
+  },
+  {
+    "title": "My Hero Academia",
+    "malId": 31964,
+    "status": "Completed"
+  },
+  {
+    "title": "Code Geass",
+    "malId": 1575,
+    "status": "Completed"
+  },
+  {
+    "title": "Hunter x hunter",
+    "malId": 11061,
+    "status": "Plan to Watch"
+  },
+  {
+    "title": "The Eminence In Shadow",
+    "malId": 48316,
+    "status": "Plan to Watch"
+  },
+  {
+    "title": "bungou stray dogs",
+    "malId": 31478,
+    "status": "Plan to Watch"
+  },
+  {
+    "title": "Parasyte",
+    "malId": 22535,
+    "status": "Plan to Watch"
+  },
+  {
+    "title": "Dragon ball z",
+    "malId": 813,
+    "status": "Plan to Watch"
+  },
+  {
+    "title": "Monster",
+    "malId": 19,
+    "status": "Plan to Watch"
+  },
+  {
+    "title": "Vinland saga",
+    "malId": 37521,
+    "status": "Plan to Watch"
+  },
+  {
+    "title": "Rakudai Kishi no Cavalry",
+    "malId": 30296,
+    "status": "Plan to Watch"
+  },
+  {
+    "title": "Mob psycho 100",
+    "malId": 32182,
+    "status": "Plan to Watch"
+  },
+  {
+    "title": "One punch man",
+    "malId": 30276,
+    "status": "Plan to Watch"
+  },
+  {
+    "title": "The Kingdom of ruins",
+    "malId": 53215,
+    "status": "Plan to Watch"
+  },
+  {
+    "title": "World trigger",
+    "malId": 24405,
+    "status": "Plan to Watch"
+  },
+  {
+    "title": "Berserk",
+    "malId": 33,
+    "status": "Plan to Watch"
+  },
+  {
+    "title": "Instant death",
+    "malId": 53730,
+    "status": "Plan to Watch"
+  },
+  {
+    "title": "Devilman crybaby",
+    "malId": 35120,
+    "status": "Plan to Watch"
+  },
+  {
+    "title": "Blue exorcist",
+    "malId": 9919,
+    "status": "Plan to Watch"
+  },
+  {
+    "title": "katsugeki touken ranbu",
+    "malId": 33018,
+    "status": "Plan to Watch"
+  },
+  {
+    "title": "Violet evergarden",
+    "malId": 33352,
+    "status": "Plan to Watch"
+  },
+  {
+    "title": "in/spectre",
+    "malId": 39017,
+    "status": "Plan to Watch"
+  },
+  {
+    "title": "Tsukimichi",
+    "malId": 43523,
+    "status": "Plan to Watch"
+  },
+  {
+    "title": "The witch and the beast",
+    "malId": 52816,
+    "status": "Plan to Watch"
+  },
+  {
+    "title": "Ao ashi",
+    "malId": 49052,
+    "status": "Plan to Watch"
+  },
+  {
+    "title": "Fire force",
+    "malId": 38671,
+    "status": "Plan to Watch"
+  },
+  {
+    "title": "Hajime no ippo",
+    "malId": 263,
+    "status": "Plan to Watch"
+  },
+  {
+    "title": "Assassination classroom",
+    "malId": 24833,
+    "status": "Plan to Watch"
+  },
+  {
+    "title": "Fullmetal Alchemist Brotherhood",
+    "malId": 5114,
+    "status": "Plan to Watch"
+  },
+  {
+    "title": "Ping Pong The Animation",
+    "malId": 22135,
+    "status": "Plan to Watch"
+  },
+  {
+    "title": "Ron Kamonohashi",
+    "malId": 53879,
+    "status": "Plan to Watch"
+  },
+  {
+    "title": "Takopi original sin",
+    "malId": 60489,
+    "status": "Plan to Watch"
+  },
+  {
+    "title": "Dead Mount Death Play",
+    "malId": 53613,
+    "status": "Plan to Watch"
+  },
+  {
+    "title": "Lord of the Mysteries",
+    "malId": 49818,
+    "status": "Plan to Watch"
+  },
+  {
+    "title": "To Every You I’ve Loved Before",
+    "malId": 49834,
+    "status": "Plan to Watch"
+  },
+  {
+    "title": "To Me, The One Who Loved You",
+    "malId": 49835,
+    "status": "Plan to Watch"
+  },
+  {
+    "title": "The Tunnel to Summer",
+    "malId": 50593,
+    "status": "Plan to Watch"
+  },
+  {
+    "title": "Steins Gate",
+    "malId": 9253,
+    "status": "Plan to Watch"
+  },
+  {
+    "title": "Even Given the Worthless Appraiser Class",
+    "malId": 59144,
+    "status": "Plan to Watch"
+  },
+  {
+    "title": "Terror in Resonance",
+    "malId": 23283,
+    "status": "Plan to Watch"
+  },
+  {
+    "title": "Akudama drive",
+    "malId": 41433,
+    "status": "Plan to Watch"
+  },
+  {
+    "title": "Spy x Family",
+    "malId": 50265,
+    "status": "Plan to Watch"
+  },
+  {
+    "title": "dandadan",
+    "malId": 57334,
+    "status": "Plan to Watch"
+  },
+  {
+    "title": "Mashle",
+    "malId": 52211,
+    "status": "Plan to Watch"
+  },
+  {
+    "title": "Frieren",
+    "malId": 52991,
+    "status": "Plan to Watch"
+  },
+  {
+    "title": "Gintama",
+    "malId": 918,
+    "status": "Plan to Watch"
+  },
+  {
+    "title": "fairy tail",
+    "malId": 35972,
+    "status": "Plan to Watch"
+  },
+  {
+    "title": "reincarnated as a slime",
+    "malId": 37430,
+    "status": "Plan to Watch"
+  },
+  {
+    "title": "rurouni kenshin",
+    "malId": 45,
+    "status": "Plan to Watch"
+  },
+  {
+    "title": "Yu Yu Hakusho",
+    "malId": 392,
+    "status": "Plan to Watch"
+  },
+  {
+    "title": "baki",
+    "malId": 34443,
+    "status": "Plan to Watch"
+  },
+  {
+    "title": "Noragami",
+    "malId": 20507,
+    "status": "Plan to Watch"
+  },
+  {
+    "title": "Sakamoto days",
+    "malId": 58939,
+    "status": "Plan to Watch"
+  },
+  {
+    "title": "Id: Invaded",
+    "malId": 40046,
+    "status": "Plan to Watch"
+  },
+  {
+    "title": "Shangri-La Frontier",
+    "malId": 52347,
+    "status": "Plan to Watch"
+  },
+  {
+    "title": "gosick",
+    "malId": 8425,
+    "status": "Plan to Watch"
+  },
+  {
+    "title": "children of the whales",
+    "malId": 34712,
+    "status": "Plan to Watch"
+  },
+  {
+    "title": "mushishi",
+    "malId": 457,
+    "status": "Plan to Watch"
+  },
+  {
+    "title": "SK8",
+    "malId": 42923,
+    "status": "Plan to Watch"
+  },
+  {
+    "title": "Let This Grieving Soul Retire",
+    "malId": 58172,
+    "status": "Plan to Watch"
+  },
+  {
+    "title": "Returner's Magic Should Be Special",
+    "malId": 54852,
+    "status": "Plan to Watch"
+  },
+  {
+    "title": "Demons of the shadow realm",
+    "malId": 48417,
+    "status": "Plan to Watch"
+  }
+]
