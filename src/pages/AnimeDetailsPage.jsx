@@ -46,7 +46,7 @@ export default function AnimeDetailsPage() {
         setImdbScore(imdb);
 
         // Fetch filler stats
-        getAnimeFillerStats(details.title, details.englishTitle).then(stats => {
+        getAnimeFillerStats(metadata.title, metadata.englishTitle).then(stats => {
           setFillerStats(stats);
         }).catch(() => null);
 
