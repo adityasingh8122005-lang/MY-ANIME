@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { useParams, Link } from 'react-router-dom';
 import { getAnimeDetails, getAnimeEpisodes } from '../services/jikanApi';
-import { getUserAnime, updateUserAnime, removeUserAnime, addWatchHistory, getWatchHistory, updateWatchHistory, deleteWatchHistory, addUserAnime } from '../services/userService';
+import { getUserAnime, updateUserAnime, removeUserAnime, addWatchHistory, getWatchHistory, updateWatchHistory, deleteWatchHistory } from '../services/userService';
 import { getEpisodeFillerData, getSingleEpisodeFillerStatus, FILLER_STATUS, getAnimeFillerStats } from '../services/fillerApi';
 import { getImdbRating } from '../services/imdbApi';
 import { getFranchiseData } from '../services/franchiseApi';
@@ -283,7 +283,7 @@ export default function AnimeDetailsPage() {
                   <Trash2 size={14} /> Remove
                 </button>
               </div>
-            )}
+            ) : null}
 
             <a 
               href={anime.malUrl} 
