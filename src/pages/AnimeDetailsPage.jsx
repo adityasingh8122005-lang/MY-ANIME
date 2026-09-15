@@ -194,7 +194,9 @@ export default function AnimeDetailsPage() {
   }
 
   // Calculate if caught up
-  const displayEpisodes = anime.episodes || fillerStats?.total || null;
+  // Fix for the old franchise Add bug which hardcoded episodes to 1 and status to Unknown
+  const safeAnimeEps = (anime.episodes === 1 && anime.status === "Unknown") ? null : anime.episodes;
+  const displayEpisodes = safeAnimeEps || fillerStats?.total || null;
   const isCaughtUp = displayEpisodes && userAnime?.episodesWatched === displayEpisodes && anime.status !== "Finished Airing";
   const isFinished = displayEpisodes && userAnime?.episodesWatched === displayEpisodes && anime.status === "Finished Airing";
 
@@ -538,20 +540,6 @@ export default function AnimeDetailsPage() {
               )}
             </div>
           )}
-
-          {/* Series Graph via iframe */}
-          <div className="mt-12 mb-8">
-            <h3 className="text-lg font-semibold text-white mb-4 border-b border-zinc-800 pb-2">Series Graph</h3>
-            <div className="bg-zinc-900 border border-zinc-800 rounded-lg overflow-hidden flex flex-col h-[600px] relative">
-              <iframe 
-                src="https://seriesgraph.com/"
-                className="w-full h-full border-0 absolute inset-0"
-                title="Series Graph"
-                sandbox="allow-scripts allow-same-origin allow-popups allow-forms"
-              />
-            </div>
-            <p className="text-xs text-zinc-500 mt-2 text-center">Use the search bar inside the window to find "{anime.title}".</p>
-          </div>
 
         </div>
       </div>

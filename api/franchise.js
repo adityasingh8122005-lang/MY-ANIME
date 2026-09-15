@@ -62,7 +62,7 @@ export default async function handler(req, res) {
           malId: currentMedia.idMal,
           title: currentMedia.title.english || currentMedia.title.romaji,
           format: currentMedia.format,
-          episodes: currentMedia.episodes || 1,
+          episodes: currentMedia.episodes || null,
           poster: currentMedia.coverImage?.large
         });
       }
@@ -105,25 +105,27 @@ export default async function handler(req, res) {
       if (seasonFillerSet) {
         // Season has its own dedicated page (like Naruto Shippuden)
         let seasonFillerCount = 0;
-        for (let i = 1; i <= season.episodes; i++) {
+        const epCount = season.episodes || 1000;
+        for (let i = 1; i <= epCount; i++) {
           if (seasonFillerSet.has(i)) seasonFillerCount++;
         }
-        season.canonEpisodes = season.episodes - seasonFillerCount;
+        season.canonEpisodes = season.episodes ? season.episodes - seasonFillerCount : 0;
         
         // Reset absolute counter since this is a new "root" in AFL
         rootFillerSet = seasonFillerSet;
-        absoluteEpCounter = season.episodes + 1; 
+        absoluteEpCounter = epCount + 1; 
       } else {
         // Season relies on the root AFL page (like AOT S2)
         let seasonFillerCount = 0;
         if (rootFillerSet) {
-          for (let i = 0; i < season.episodes; i++) {
+          const epCount = season.episodes || 1000;
+          for (let i = 0; i < epCount; i++) {
             if (rootFillerSet.has(absoluteEpCounter)) seasonFillerCount++;
             absoluteEpCounter++;
           }
         } else {
           // No filler data at all for root, assume all canon
-          absoluteEpCounter += season.episodes;
+          absoluteEpCounter += epCount;
         }
         season.canonEpisodes = season.episodes - seasonFillerCount;
       }

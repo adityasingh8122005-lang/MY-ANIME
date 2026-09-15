@@ -135,7 +135,9 @@ export async function getAnimeDetails(malId) {
  */
 export async function getAnimeEpisodes(malId) {
   const details = await getAnimeDetails(malId);
-  const totalEps = details.episodes || 12; // Fallback to 12 if unknown
+  // Fix the franchise bug where episodes was cached as 1
+  const safeEps = (details.episodes === 1 && details.status === "Unknown") ? null : details.episodes;
+  const totalEps = safeEps || 12; // Fallback to 12 if unknown
   
   const episodesList = [];
   for (let i = 1; i <= totalEps; i++) {
