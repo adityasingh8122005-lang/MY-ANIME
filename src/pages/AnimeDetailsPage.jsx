@@ -43,6 +43,7 @@ export default function AnimeDetailsPage() {
   const [editingHistoryId, setEditingHistoryId] = useState(null);
   const [editHistoryDate, setEditHistoryDate] = useState('');
   const [editHistoryEps, setEditHistoryEps] = useState(1);
+  const [confirmDialog, setConfirmDialog] = useState({ isOpen: false, title: '', message: '', onConfirm: null });
 
   // External modular data
   const [imdbScore, setImdbScore] = useState(null);
@@ -129,11 +130,17 @@ export default function AnimeDetailsPage() {
     setUserAnime(updated);
   };
 
-  const handleRemove = async () => {
-    if (window.confirm("Remove this anime from your collection?")) {
-      await removeUserAnime(id);
-      setUserAnime(null);
-    }
+  const handleRemove = () => {
+    setConfirmDialog({
+      isOpen: true,
+      title: 'Remove Anime',
+      message: 'Are you sure you want to remove this anime from your collection? This action cannot be undone.',
+      onConfirm: async () => {
+        await removeUserAnime(id);
+        setUserAnime(null);
+        setConfirmDialog({ isOpen: false });
+      }
+    });
   };
 
   const handleAddHistory = async (e) => {
@@ -168,11 +175,17 @@ export default function AnimeDetailsPage() {
     setEditingHistoryId(null);
   };
 
-  const handleDeleteHistory = async (entryId) => {
-    if (window.confirm("Delete this watch session?")) {
-      await deleteWatchHistory(entryId);
-      setHistory(await getWatchHistory(id));
-    }
+  const handleDeleteHistory = (entryId) => {
+    setConfirmDialog({
+      isOpen: true,
+      title: 'Delete Session',
+      message: 'Are you sure you want to delete this watch session?',
+      onConfirm: async () => {
+        await deleteWatchHistory(entryId);
+        setHistory(await getWatchHistory(id));
+        setConfirmDialog({ isOpen: false });
+      }
+    });
   };
 
   if (isLoading) {
@@ -548,7 +561,31 @@ export default function AnimeDetailsPage() {
           )}
 
         </div>
+  
       </div>
+      {/* Custom Confirm Modal */}
+      {confirmDialog.isOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/70 backdrop-blur-sm">
+          <div className="bg-dark-elevated border border-zinc-700 rounded-lg max-w-sm w-full p-6 shadow-2xl animate-in fade-in zoom-in duration-200">
+            <h3 className="text-lg font-bold text-white mb-2">{confirmDialog.title}</h3>
+            <p className="text-zinc-400 text-sm mb-6">{confirmDialog.message}</p>
+            <div className="flex justify-end gap-3">
+              <button 
+                onClick={() => setConfirmDialog({ isOpen: false })}
+                className="px-4 py-2 text-sm font-medium text-zinc-300 hover:text-white bg-zinc-800 hover:bg-zinc-700 rounded-md transition-colors"
+              >
+                Cancel
+              </button>
+              <button 
+                onClick={confirmDialog.onConfirm}
+                className="px-4 py-2 text-sm font-medium text-white bg-red-600 hover:bg-red-500 rounded-md transition-colors"
+              >
+                Confirm
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
