@@ -32,11 +32,9 @@ function App() {
   useEffect(() => {
     async function fixDb() {
       try {
-        const metadata = await db.animeMetadata.where('episodes').equals(1).toArray();
-        for (const m of metadata) {
-          if (m.status === "Unknown" && m.title === "ONE PIECE") {
-            await db.animeMetadata.update(m.malId, { episodes: null });
-          }
+        const m = await db.animeMetadata.get(21);
+        if (m && m.episodes === 1 && (m.status === "Unknown" || m.title === "ONE PIECE")) {
+          await db.animeMetadata.update(21, { episodes: null });
         }
         
         const franchises = await db.franchises.toArray();

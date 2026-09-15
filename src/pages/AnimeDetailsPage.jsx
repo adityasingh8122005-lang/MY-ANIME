@@ -97,7 +97,8 @@ export default function AnimeDetailsPage() {
     const updates = { personalStatus: status };
     
     // Automatically maximize progress if marked as Completed
-    const maxEps = anime.episodes || fillerStats?.total || null;
+    const safeAnimeEps = (anime.episodes === 1 && anime.status === "Unknown") ? null : anime.episodes;
+    const maxEps = safeAnimeEps || fillerStats?.total || null;
     if (status === 'Completed' && maxEps) {
       updates.episodesWatched = maxEps;
     }
@@ -107,7 +108,8 @@ export default function AnimeDetailsPage() {
   };
 
   const handleEpisodesChange = async (eps) => {
-    const maxEps = anime.episodes;
+    const safeAnimeEps = (anime.episodes === 1 && anime.status === "Unknown") ? null : anime.episodes;
+    const maxEps = safeAnimeEps || fillerStats?.total || null;
     let newValue = parseInt(eps, 10);
     if (isNaN(newValue)) return;
     if (newValue < 0) newValue = 0;
