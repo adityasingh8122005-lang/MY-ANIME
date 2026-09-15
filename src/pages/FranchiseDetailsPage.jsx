@@ -1,12 +1,31 @@
 import { useState, useEffect } from 'react';
 import { useParams, Link } from 'react-router-dom';
 import { getFranchiseWithProgress } from '../services/franchiseService';
-import { Loader2, ArrowLeft, Folder, Tv, Film } from 'lucide-react';
+import { updateUserAnime } from '../services/userService';
+import { Loader2, ArrowLeft, Folder, Tv, Film, CheckCircle } from 'lucide-react';
 
 export default function FranchiseDetailsPage() {
   const { id } = useParams();
   const [franchise, setFranchise] = useState(null);
   const [isLoading, setIsLoading] = useState(true);
+  const [isCompleting, setIsCompleting] = useState(false);
+
+  const handleCompleteFranchise = async () => {
+    setIsCompleting(true);
+    try {
+      for (const season of franchise.seasons) {
+        await updateUserAnime(season.malId, { 
+          episodesWatched: season.canonEpisodes || season.episodes || 1,
+          personalStatus: 'Completed' 
+        });
+      }
+      const data = await getFranchiseWithProgress(id);
+      setFranchise(data);
+    } catch (err) {
+      console.error(err);
+    }
+    setIsCompleting(false);
+  };
 
   useEffect(() => {
     async function load() {
@@ -50,7 +69,7 @@ export default function FranchiseDetailsPage() {
           </div>
           <h1 className="text-3xl font-bold text-white mb-4">{franchise.franchiseName}</h1>
           
-          <div className="flex flex-wrap gap-4">
+                    <div className="flex flex-wrap gap-4">
             <div className="bg-dark-base border border-zinc-700 rounded p-3 text-center min-w-[120px]">
               <div className="text-xs text-zinc-500 uppercase font-bold tracking-wider mb-1">Total Canon</div>
               <div className="text-xl font-bold text-white">{franchise.totalCanon} Eps</div>
@@ -65,6 +84,17 @@ export default function FranchiseDetailsPage() {
                 {franchise.totalCanon > 0 ? Math.round((franchise.totalWatched / franchise.totalCanon) * 100) : 0}%
               </div>
             </div>
+          </div>
+          
+          <div className="mt-6 flex flex-wrap gap-3">
+            <button 
+              onClick={handleCompleteFranchise}
+              disabled={isCompleting || franchise.totalWatched === franchise.totalCanon}
+              className="flex items-center gap-2 px-4 py-2 bg-zinc-800 hover:bg-zinc-700 disabled:opacity-50 text-white rounded-lg transition-colors font-medium text-sm border border-zinc-700"
+            >
+              {isCompleting ? <Loader2 size={16} className="animate-spin" /> : <CheckCircle size={16} className={franchise.totalWatched === franchise.totalCanon ? "text-green-500" : "text-zinc-400"} />}
+              {franchise.totalWatched === franchise.totalCanon ? "Completed" : "Mark Franchise Completed"}
+            </button>
           </div>
         </div>
       </div>
