@@ -6,6 +6,7 @@ import { getEpisodeFillerData, getSingleEpisodeFillerStatus, FILLER_STATUS, getA
 import { getImdbRating } from '../services/imdbApi';
 import { getFranchiseData } from '../services/franchiseApi';
 import { addFranchiseToDb } from '../services/franchiseService';
+import Stepper from '../components/Stepper';
 import { Loader2, ArrowLeft, ExternalLink, Calendar, History, Trash2, CheckCircle, PlayCircle, List, PauseCircle, XCircle, Plus, Edit2 } from 'lucide-react';
 
 export default function AnimeDetailsPage() {
@@ -249,24 +250,13 @@ export default function AnimeDetailsPage() {
                     {isCaughtUp && <span className="text-accent text-[10px]">CAUGHT UP</span>}
                     {isFinished && <span className="text-green-500 text-[10px]">COMPLETED</span>}
                   </label>
-                  <div className="flex items-center gap-2">
-                    <input 
-                      type="number" 
-                      min="0"
-                      max={displayEpisodes || ''}
+                  <div className="flex items-center gap-3">
+                    <Stepper 
                       value={userAnime.episodesWatched || 0}
-                      onChange={(e) => handleEpisodesChange(e.target.value)}
-                      className="w-16 bg-dark-base border border-zinc-700 rounded p-2 text-white text-sm focus:border-accent focus:outline-none text-center"
+                      max={displayEpisodes || undefined}
+                      onChange={(newVal) => handleEpisodesChange(newVal)}
                     />
-                    <span className="text-zinc-400">/ {displayEpisodes || '?'}</span>
-                    <button 
-                      onClick={() => handleEpisodesChange((userAnime.episodesWatched || 0) + 1)}
-                      disabled={displayEpisodes && userAnime.episodesWatched >= displayEpisodes}
-                      className="ml-auto p-2 bg-dark-elevated hover:bg-zinc-700 rounded border border-zinc-700 disabled:opacity-50 transition-colors text-white"
-                      title="Increment Episode"
-                    >
-                      <Plus size={14} />
-                    </button>
+                    <span className="text-zinc-400 font-medium text-sm mt-0.5">/ {displayEpisodes || '?'} eps</span>
                   </div>
                 </div>
 
