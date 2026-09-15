@@ -14,6 +14,11 @@ query ($page: Int, $genre: String, $format: MediaFormat, $status: MediaStatus) {
       status
       genres
       averageScore
+      relations {
+        edges {
+          relationType
+        }
+      }
     }
   }
 }
@@ -76,7 +81,14 @@ export default function SurpriseMePage() {
          throw new Error("Invalid API Response");
       }
       
-      let list = json.data.Page.media.filter(a => a.idMal);
+      let list = json.data.Page.media.filter(a => {
+        if (!a.idMal) return false;
+        // Only return the base franchise entry by excluding sequels/spinoffs
+        const isSequel = a.relations?.edges?.some(e => 
+          ['PREQUEL', 'PARENT', 'ALTERNATIVE'].includes(e.relationType)
+        );
+        return !isSequel;
+      });
 
       // Filter by max episodes
       if (maxEpisodes !== '' && maxEpisodes !== 'Any') {
