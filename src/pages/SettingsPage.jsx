@@ -1,5 +1,5 @@
 import { useState, useRef } from 'react';
-import { exportUserData, importUserData, clearAllUserData } from '../services/userService';
+import { exportUserData, importUserData, removeUnknownAnime } from '../services/userService';
 import { Download, Upload, Settings as SettingsIcon, AlertTriangle } from 'lucide-react';
 
 export default function SettingsPage() {
@@ -36,10 +36,10 @@ export default function SettingsPage() {
 
   
   const handleResetData = async () => {
-    if (window.confirm("Are you sure you want to delete ALL your anime, watch history, and database entries? This cannot be undone!")) {
+    if (window.confirm("Are you sure you want to remove all the unknown/blank anime that were just imported? Your original anime and watch history will be kept safe!")) {
       try {
-        await clearAllUserData();
-        showMessage("All data has been cleared. Your collection is now empty.");
+        const removedCount = await removeUnknownAnime();
+        showMessage(`Cleaned up ${removedCount} unknown anime successfully!`);
         // Optional: refresh page after a second
         setTimeout(() => window.location.reload(), 2000);
       } catch (err) {
@@ -120,13 +120,13 @@ export default function SettingsPage() {
           <AlertTriangle size={18} /> Danger Zone
         </h2>
         <p className="text-sm text-zinc-400 mb-6">
-          This will permanently delete all your anime, franchises, and watch history from this device. If you just had unknown anime imported by mistake, this is the easiest way to start fresh.
+          This will safely remove ONLY the "Unknown" / blank anime that were just imported by the script. Your previously added anime, watch history, and database will remain completely safe.
         </p>
         <button 
           onClick={handleResetData}
           className="bg-red-950/40 hover:bg-red-900/60 text-red-400 px-4 py-2 rounded-md border border-red-900/50 transition-colors text-sm font-bold"
         >
-          Wipe All Data (Reset Application)
+          Remove Unknown Anime Only
         </button>
       </div>
     </div>

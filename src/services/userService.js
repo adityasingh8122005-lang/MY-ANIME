@@ -147,3 +147,27 @@ export async function clearAllUserData() {
     await db.franchises.clear();
   });
 }
+
+/**
+ * Removes only anime that were added without metadata (the "Unknown" ones)
+ */
+export async function removeUnknownAnime() {
+  const userList = await db.userAnime.toArray();
+  const metadataMap = new Map();
+  const malIds = userList.map(u => u.malId);
+  
+  const metadataList = await db.animeMetadata.where('malId').anyOf(malIds).toArray();
+  metadataList.forEach(m => metadataMap.set(m.malId, m));
+  
+  const idsToDelete = [];
+  for (const u of userList) {
+    if (!metadataMap.has(u.malId)) {
+      idsToDelete.push(u.malId);
+    }
+  }
+  
+  if (idsToDelete.length > 0) {
+    await db.userAnime.bulkDelete(idsToDelete);
+  }
+  return idsToDelete.length;
+}
