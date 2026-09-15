@@ -117,8 +117,8 @@ export default async function handler(req, res) {
       } else {
         // Season relies on the root AFL page (like AOT S2)
         let seasonFillerCount = 0;
+        const epCount = season.episodes || 1000;
         if (rootFillerSet) {
-          const epCount = season.episodes || 1000;
           for (let i = 0; i < epCount; i++) {
             if (rootFillerSet.has(absoluteEpCounter)) seasonFillerCount++;
             absoluteEpCounter++;
@@ -127,7 +127,7 @@ export default async function handler(req, res) {
           // No filler data at all for root, assume all canon
           absoluteEpCounter += epCount;
         }
-        season.canonEpisodes = season.episodes - seasonFillerCount;
+        season.canonEpisodes = season.episodes ? season.episodes - seasonFillerCount : 0;
       }
     }
 
