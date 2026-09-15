@@ -62,12 +62,9 @@ function App() {
       <div className="min-h-screen flex flex-col">
         <header className="bg-dark-surface border-b border-zinc-800 sticky top-0 z-50">
           <div className="max-w-7xl mx-auto px-4 h-16 flex items-center justify-between">
-            <div className="flex items-center gap-4">
-              <Link to="/" className="text-xl font-bold tracking-wider text-accent font-mono shrink-0">
-                MY AN!ME
-              </Link>
-              <Notifications />
-            </div>
+            <Link to="/" className="text-xl font-bold tracking-wider text-accent font-mono shrink-0">
+              MY AN!ME
+            </Link>
             <nav className="flex gap-2 overflow-x-auto no-scrollbar">
               <NavItem to="/" icon={Home} label="Home" />
               <NavItem to="/my-anime" icon={Library} label="My Anime" />
@@ -75,6 +72,7 @@ function App() {
               <NavItem to="/statistics" icon={BarChart3} label="Statistics" />
               <NavItem to="/surprise-me" icon={Dices} label="Surprise Me" />
               <NavItem to="/settings" icon={SettingsIcon} label="Settings" />
+              <Notifications />
             </nav>
           </div>
         </header>
