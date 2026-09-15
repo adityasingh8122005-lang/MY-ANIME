@@ -1,11 +1,10 @@
 import { useState, useRef } from 'react';
-import { exportUserData, importUserData, updateUserAnime } from '../services/userService';
-import { Download, Upload, Settings as SettingsIcon, AlertTriangle, CloudRain, Loader2 } from 'lucide-react';
+import { exportUserData, importUserData } from '../services/userService';
+import { Download, Upload, Settings as SettingsIcon, AlertTriangle } from 'lucide-react';
 
 export default function SettingsPage() {
   const [message, setMessage] = useState('');
   const [isError, setIsError] = useState(false);
-  const [isSyncing, setIsSyncing] = useState(false);
   const fileInputRef = useRef(null);
 
   const showMessage = (msg, error = false) => {
@@ -53,27 +52,8 @@ export default function SettingsPage() {
       showMessage("Invalid backup file.", true);
     }
     
+    // Reset file input
     if (fileInputRef.current) fileInputRef.current.value = '';
-  };
-
-  const handleSyncSpreadsheet = async () => {
-    setIsSyncing(true);
-    try {
-      const res = await fetch('/aditya_list.json');
-      if (!res.ok) throw new Error("JSON not found");
-      const list = await res.json();
-      
-      let count = 0;
-      for (const item of list) {
-        await updateUserAnime(item.malId, { personalStatus: item.status });
-        count++;
-      }
-      showMessage(`Successfully synced ${count} anime from your spreadsheet!`);
-    } catch (err) {
-      console.error(err);
-      showMessage("Failed to sync spreadsheet.", true);
-    }
-    setIsSyncing(false);
   };
 
   return (
@@ -81,21 +61,6 @@ export default function SettingsPage() {
       <h1 className="text-2xl font-bold text-white flex items-center gap-2 mb-8">
         <SettingsIcon className="text-accent" /> Settings
       </h1>
-
-      <div className="bg-dark-surface border border-zinc-800 rounded-lg p-6 mb-8">
-        <h2 className="text-lg font-semibold text-white mb-4">Aditya's Spreadsheet Sync</h2>
-        <p className="text-sm text-zinc-400 mb-6">
-          Click below to automatically import your manually tracked spreadsheet into the database.
-        </p>
-        <button 
-          onClick={handleSyncSpreadsheet}
-          disabled={isSyncing}
-          className="flex items-center gap-2 bg-accent hover:bg-accent-hover text-white px-4 py-2 rounded-md font-bold transition-colors shadow-lg shadow-accent/20"
-        >
-          {isSyncing ? <Loader2 size={16} className="animate-spin" /> : <CloudRain size={16} />}
-          {isSyncing ? 'Syncing...' : 'Sync Spreadsheet Data'}
-        </button>
-      </div>
 
       <div className="bg-dark-surface border border-zinc-800 rounded-lg p-6">
         <h2 className="text-lg font-semibold text-white mb-4">Data Management</h2>
