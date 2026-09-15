@@ -135,3 +135,15 @@ export async function importUserData(parsedData) {
     }
   });
 }
+
+/**
+ * Clears all user data from the local database
+ */
+export async function clearAllUserData() {
+  await db.transaction('rw', db.userAnime, db.watchHistory, db.animeMetadata, db.franchises, async () => {
+    await db.userAnime.clear();
+    await db.watchHistory.clear();
+    await db.animeMetadata.clear();
+    await db.franchises.clear();
+  });
+}
