@@ -6,7 +6,6 @@ import { getEpisodeFillerData, getSingleEpisodeFillerStatus, FILLER_STATUS, getA
 import { getImdbRating } from '../services/imdbApi';
 import { getFranchiseData } from '../services/franchiseApi';
 import { addFranchiseToDb } from '../services/franchiseService';
-import Stepper from '../components/Stepper';
 import { Loader2, ArrowLeft, ExternalLink, Calendar, History, Trash2, CheckCircle, PlayCircle, List, PauseCircle, XCircle, Plus, Edit2 } from 'lucide-react';
 
 export default function AnimeDetailsPage() {
