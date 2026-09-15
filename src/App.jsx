@@ -9,6 +9,8 @@ import StatisticsPage from './pages/StatisticsPage.jsx';
 import SurpriseMePage from './pages/SurpriseMePage.jsx';
 import FranchiseDetailsPage from './pages/FranchiseDetailsPage.jsx';
 import clsx from 'clsx';
+import { useEffect } from 'react';
+import { db } from './services/db.js';
 
 function NavItem({ to, icon: Icon, label }) {
   return (
@@ -26,6 +28,36 @@ function NavItem({ to, icon: Icon, label }) {
 }
 
 function App() {
+
+  useEffect(() => {
+    async function fixDb() {
+      try {
+        const metadata = await db.animeMetadata.where('episodes').equals(1).toArray();
+        for (const m of metadata) {
+          if (m.status === "Unknown" && m.title === "ONE PIECE") {
+            await db.animeMetadata.update(m.malId, { episodes: null });
+          }
+        }
+        
+        const franchises = await db.franchises.toArray();
+        for (const f of franchises) {
+          let updated = false;
+          f.seasons = f.seasons.map(s => {
+            if (s.canonEpisodes === 1 && s.title === "ONE PIECE") {
+              updated = true;
+              return { ...s, canonEpisodes: 1168, episodes: null };
+            }
+            return s;
+          });
+          if (updated) {
+            await db.franchises.put(f);
+          }
+        }
+      } catch (e) { console.error(e); }
+    }
+    fixDb();
+  }, []);
+
   return (
     <Router>
       <div className="min-h-screen flex flex-col">

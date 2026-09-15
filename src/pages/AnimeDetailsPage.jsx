@@ -253,11 +253,16 @@ export default function AnimeDetailsPage() {
                     {isFinished && <span className="text-green-500 text-[10px]">COMPLETED</span>}
                   </label>
                   <div className="flex items-center gap-3">
-                    <Stepper 
+                    <div className="flex items-center gap-2">
+                    <input 
+                      type="number" 
+                      min="0"
+                      max={displayEpisodes || ''}
                       value={userAnime.episodesWatched || 0}
-                      max={displayEpisodes || undefined}
-                      onChange={(newVal) => handleEpisodesChange(newVal)}
+                      onChange={(e) => handleEpisodesChange(e.target.value)}
+                      className="w-16 bg-dark-base border border-zinc-700 rounded p-2 text-white text-sm focus:border-accent focus:outline-none text-center"
                     />
+                  </div>
                     <span className="text-zinc-400 font-medium text-sm mt-0.5">/ {displayEpisodes || '?'} eps</span>
                   </div>
                 </div>
