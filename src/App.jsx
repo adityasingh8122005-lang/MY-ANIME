@@ -7,6 +7,7 @@ import MyAnimePage from './pages/MyAnimePage.jsx';
 import SettingsPage from './pages/SettingsPage.jsx';
 import StatisticsPage from './pages/StatisticsPage.jsx';
 import SurpriseMePage from './pages/SurpriseMePage.jsx';
+import Notifications from './components/Notifications.jsx';
 import FranchiseDetailsPage from './pages/FranchiseDetailsPage.jsx';
 import clsx from 'clsx';
 import { useEffect } from 'react';
@@ -61,9 +62,12 @@ function App() {
       <div className="min-h-screen flex flex-col">
         <header className="bg-dark-surface border-b border-zinc-800 sticky top-0 z-50">
           <div className="max-w-7xl mx-auto px-4 h-16 flex items-center justify-between">
-            <Link to="/" className="text-xl font-bold tracking-wider text-accent font-mono shrink-0">
-              MY AN!ME
-            </Link>
+            <div className="flex items-center gap-4">
+              <Link to="/" className="text-xl font-bold tracking-wider text-accent font-mono shrink-0">
+                MY AN!ME
+              </Link>
+              <Notifications />
+            </div>
             <nav className="flex gap-2 overflow-x-auto no-scrollbar">
               <NavItem to="/" icon={Home} label="Home" />
               <NavItem to="/my-anime" icon={Library} label="My Anime" />

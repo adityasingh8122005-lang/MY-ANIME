@@ -1,4 +1,7 @@
-import { useState, useEffect } from 'react';
+const fs = require('fs');
+let code = fs.readFileSync('src/pages/MyAnimePage.jsx', 'utf8');
+
+const replacement = `import { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { getGroupedCollection } from '../services/franchiseService';
 import { Loader2, Library, Folder, Edit2, Check, ArrowUp, ArrowDown } from 'lucide-react';
@@ -161,7 +164,7 @@ export default function MyAnimePage() {
         <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-4">
           {filtered.map((item, index) => {
             const isFranchise = item.isFranchise;
-            const to = isFranchise ? `/franchise/${item.franchiseId}` : `/anime/${item.malId}`;
+            const to = isFranchise ? \`/franchise/\${item.franchiseId}\` : \`/anime/\${item.malId}\`;
             
             return (
               <div key={isFranchise ? item.franchiseId : item.malId} className="relative group rounded-lg overflow-hidden bg-dark-surface border border-zinc-800 hover:border-accent transition-colors flex flex-col h-full">
@@ -187,7 +190,7 @@ export default function MyAnimePage() {
                       <div className="absolute bottom-0 left-0 right-0 h-1 bg-zinc-800 z-10">
                         <div 
                           className="h-full bg-accent" 
-                          style={{ width: `${Math.min(100, ((item.totalWatched ?? item.episodesWatched) / (item.totalCanon ?? item.canonEpisodes)) * 100)}%` }}
+                          style={{ width: \`\${Math.min(100, ((item.totalWatched ?? item.episodesWatched) / (item.totalCanon ?? item.canonEpisodes)) * 100)}%\` }}
                         />
                       </div>
                     )}
@@ -233,3 +236,6 @@ export default function MyAnimePage() {
     </div>
   );
 }
+`;
+
+fs.writeFileSync('src/pages/MyAnimePage.jsx', replacement);

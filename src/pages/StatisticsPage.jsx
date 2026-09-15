@@ -11,62 +11,51 @@ export default function StatisticsPage() {
     async function loadStats() {
       setIsLoading(true);
       try {
-        const collection = await getAllUserAnime(true);
-        const watchHistory = await db.watchHistory.toArray();
+        const groupedCollection = await getGroupedCollection();
+        const watchHistory = await getWatchHistory();
 
-        // 1. Collection Breakdown
+        // 1. Collection Breakdown (using grouped franchises)
         const collectionStats = {
-          total: collection.length,
-          'Watching': 0,
-          'Plan to Watch': 0,
-          'Completed': 0,
-          'On Hold': 0,
-          'Dropped': 0,
+          'Watching': 0, 'Plan to Watch': 0, 'Completed': 0, 'On Hold': 0, 'Dropped': 0, total: 0
         };
-
-        collection.forEach(a => {
+        groupedCollection.forEach(a => {
           if (collectionStats[a.personalStatus] !== undefined) {
             collectionStats[a.personalStatus]++;
           }
+          collectionStats.total++;
         });
 
-        // 2. Watching Stats
-        const totalEpisodesWatched = collection.reduce((sum, a) => sum + (a.episodesWatched || 0), 0);
+        // 2. Global Totals
+        let totalEpisodesWatched = 0;
+        groupedCollection.forEach(a => {
+          totalEpisodesWatched += (a.totalWatched ?? a.episodesWatched ?? 0);
+        });
+
         const totalWatchingSessions = watchHistory.length;
-        const avgEpsPerSession = totalWatchingSessions > 0 
-          ? (watchHistory.reduce((sum, h) => sum + h.episodesWatched, 0) / totalWatchingSessions).toFixed(1)
-          : 0;
-        
-        // Most watched anime (based on highest absolute episodesWatched in collection)
-        let mostWatchedAnime = null;
-        let maxEps = -1;
-        collection.forEach(a => {
-          if (a.episodesWatched !== undefined && a.episodesWatched > maxEps) {
-            maxEps = a.episodesWatched;
-            mostWatchedAnime = a;
-          }
-        });
-
-        const mostWatchedTitle = mostWatchedAnime?.metadata?.title || 'None';
 
         // Estimated Watch Time
         // The Jikan duration string looks like "24 min per ep", "1 hr 13 min", "Unknown"
         // We only use the explicitly defined minutes. We do NOT fabricate missing durations.
         let totalMinutes = 0;
         let hasKnownDuration = false;
-        collection.forEach(a => {
-          if (a.episodesWatched > 0 && a.metadata?.duration) {
-            const minMatch = a.metadata.duration.match(/(\d+)\s*min/);
-            const hrMatch = a.metadata.duration.match(/(\d+)\s*hr/);
-            let mins = 0;
-            if (hrMatch) mins += parseInt(hrMatch[1], 10) * 60;
-            if (minMatch) mins += parseInt(minMatch[1], 10);
-            
-            if (mins > 0) {
-              totalMinutes += (a.episodesWatched * mins);
-              hasKnownDuration = true;
+        groupedCollection.forEach(g => {
+          // If it's a franchise, we iterate its seasons to get duration
+          const items = g.isFranchise ? g.seasons : [g];
+          items.forEach(a => {
+            const watched = a.episodesWatched || 0;
+            if (watched > 0 && a.metadata?.duration) {
+              const minMatch = a.metadata.duration.match(/(\d+)\s*min/);
+              const hrMatch = a.metadata.duration.match(/(\d+)\s*hr/);
+              let mins = 0;
+              if (hrMatch) mins += parseInt(hrMatch[1], 10) * 60;
+              if (minMatch) mins += parseInt(minMatch[1], 10);
+              
+              if (mins > 0) {
+                totalMinutes += (watched * mins);
+                hasKnownDuration = true;
+              }
             }
-          }
+          });
         });
         
         const estWatchHours = hasKnownDuration ? (totalMinutes / 60).toFixed(1) : "Unavailable";
@@ -95,8 +84,6 @@ export default function StatisticsPage() {
           collectionStats,
           totalEpisodesWatched,
           totalWatchingSessions,
-          avgEpsPerSession,
-          mostWatchedTitle,
           estWatchHours,
           chartData,
           maxChartEps
@@ -215,17 +202,7 @@ export default function StatisticsPage() {
 
       </div>
 
-      {/* Additional Stats */}
-      <div className="bg-dark-surface border border-zinc-800 rounded-lg p-6 grid grid-cols-1 md:grid-cols-2 gap-6">
-        <div>
-          <h3 className="text-zinc-500 text-sm font-semibold uppercase tracking-wider mb-2">Most Watched Anime</h3>
-          <p className="text-xl font-bold text-white line-clamp-1">{stats.mostWatchedTitle}</p>
-        </div>
-        <div>
-          <h3 className="text-zinc-500 text-sm font-semibold uppercase tracking-wider mb-2">Avg Episodes Per Session</h3>
-          <p className="text-xl font-bold text-white">{stats.avgEpsPerSession} <span className="text-sm text-zinc-400 font-normal">episodes</span></p>
-        </div>
-      </div>
+
 
     </div>
   );
