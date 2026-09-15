@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
-import { getAllUserAnime } from '../services/userService';
+import { getGroupedCollection } from '../services/franchiseService';
+import { getWatchHistory } from '../services/userService';
 import { db } from '../services/db';
 import { BarChart3, Clock, Tv, Calendar, Loader2 } from 'lucide-react';
 
@@ -12,7 +13,7 @@ export default function StatisticsPage() {
       setIsLoading(true);
       try {
         const groupedCollection = await getGroupedCollection();
-        const watchHistory = await getWatchHistory();
+        const watchHistory = await db.watchHistory.toArray();
 
         // 1. Collection Breakdown (using grouped franchises)
         const collectionStats = {
