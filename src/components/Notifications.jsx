@@ -1,11 +1,28 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { Bell } from 'lucide-react';
 import { getGroupedCollection } from '../services/franchiseService';
 import { Link } from 'react-router-dom';
 
 export default function Notifications() {
+
   const [updates, setUpdates] = useState([]);
   const [show, setShow] = useState(false);
+  const dropdownRef = useRef(null);
+
+  useEffect(() => {
+    function handleClickOutside(event) {
+      if (dropdownRef.current && !dropdownRef.current.contains(event.target)) {
+        setShow(false);
+      }
+    }
+    document.addEventListener("mousedown", handleClickOutside);
+    document.addEventListener("touchstart", handleClickOutside);
+    return () => {
+      document.removeEventListener("mousedown", handleClickOutside);
+      document.removeEventListener("touchstart", handleClickOutside);
+    };
+  }, []);
+
 
   useEffect(() => {
     async function checkUpdates() {
@@ -37,8 +54,8 @@ export default function Notifications() {
   }, []);
 
   return (
-    <div className="relative flex items-center">
-      <button onClick={() => setShow(!show)} className="relative p-2 text-zinc-400 hover:text-white transition-colors">
+    <div className="relative flex items-center" ref={dropdownRef}>
+      <button onClick={(e) => { e.stopPropagation(); setShow(prev => !prev); }} className="relative p-2 text-zinc-400 hover:text-white transition-colors">
         <Bell size={20} />
         {updates.length > 0 && (
           <span className="absolute top-1 right-1 w-2 h-2 bg-accent rounded-full border border-dark-surface animate-pulse" />

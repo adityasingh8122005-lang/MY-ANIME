@@ -42,7 +42,9 @@ const HeaderProfile = () => {
       }
     }
     document.addEventListener("mousedown", handleClickOutside);
+    document.addEventListener("touchstart", handleClickOutside);
     return () => document.removeEventListener("mousedown", handleClickOutside);
+    document.removeEventListener("touchstart", handleClickOutside);
   }, []);
   
   if (!session) {
@@ -56,7 +58,7 @@ const HeaderProfile = () => {
   return (
     <div className="relative" ref={dropdownRef}>
       <button 
-        onClick={() => setIsOpen(!isOpen)}
+        onClick={(e) => { e.stopPropagation(); setIsOpen(prev => !prev); }}
         className="p-1 shrink-0 rounded-full border border-zinc-700 hover:border-zinc-500 transition-colors overflow-hidden w-8 h-8 flex items-center justify-center bg-zinc-800 focus:outline-none"
       >
         {profile?.avatar_url ? (
@@ -148,7 +150,7 @@ function Navigation() {
   const { profile } = useAuth();
   
   return (
-    <div className="flex-1 flex items-center justify-end overflow-hidden ml-4">
+    <div className="flex-1 flex items-center justify-end min-w-0 ml-4">
       <nav className="flex gap-2 overflow-x-auto no-scrollbar items-center mr-4 max-w-full">
         <NavItem to="/" icon={Home} label="Home" />
         <NavItem to="/my-anime" icon={Library} label="My Anime" />
