@@ -133,14 +133,16 @@ function App() {
 
         <main className="flex-1 max-w-7xl mx-auto px-4 py-8 w-full">
           <Routes>
+            <Route path="/auth" element={<AuthPage />} />
             <Route path="/" element={<HomePage />} />
-            <Route path="/my-anime" element={<MyAnimePage />} />
+            <Route path="/my-anime" element={<ProtectedRoute><MyAnimePage /></ProtectedRoute>} />
             <Route path="/search" element={<SearchPage />} />
-            <Route path="/statistics" element={<StatisticsPage />} />
+            <Route path="/statistics" element={<ProtectedRoute><StatisticsPage /></ProtectedRoute>} />
             <Route path="/surprise-me" element={<SurpriseMePage />} />
-            <Route path="/settings" element={<SettingsPage />} />
+            <Route path="/settings" element={<ProtectedRoute><SettingsPage /></ProtectedRoute>} />
             <Route path="/anime/:id" element={<AnimeDetailsPage />} />
             <Route path="/franchise/:id" element={<FranchiseDetailsPage />} />
+            <Route path="/profile/:username" element={<ProfilePage />} />
           </Routes>
         </main>
       </div>

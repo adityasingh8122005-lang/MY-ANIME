@@ -11,6 +11,7 @@ export const AuthProvider = ({ children }) => {
   const fetchProfile = async (userId) => {
     const { data } = await supabase.from('profiles').select('*').eq('id', userId).maybeSingle();
     setProfile(data || null);
+    setLoading(false);
   };
 
   useEffect(() => {
