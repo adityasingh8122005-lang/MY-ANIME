@@ -1,7 +1,7 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { supabase } from '../services/supabase';
-import { useNavigate } from 'react-router-dom';
-import { Loader2, Mail, Lock, UserPlus, LogIn, AlertCircle } from 'lucide-react';
+import { useNavigate, useLocation } from 'react-router-dom';
+import { Loader2, Mail, Lock, UserPlus, LogIn, AlertCircle, CheckCircle } from 'lucide-react';
 
 export default function AuthPage() {
   const [isSignUp, setIsSignUp] = useState(false);
@@ -9,25 +9,50 @@ export default function AuthPage() {
   const [password, setPassword] = useState('');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
+  const [success, setSuccess] = useState(null);
   
   const navigate = useNavigate();
+  const location = useLocation();
+
+  useEffect(() => {
+    // Check if the URL tells us to default to signup
+    const params = new URLSearchParams(location.search);
+    if (params.get('signup') === 'true') {
+      setIsSignUp(true);
+    }
+  }, [location]);
 
   const handleAuth = async (e) => {
     e.preventDefault();
     setLoading(true);
     setError(null);
+    setSuccess(null);
+
+    // Enforce 8 character password limit on Sign Up
+    if (isSignUp && password.length < 8) {
+      setError('Password must be at least 8 characters or numbers long.');
+      setLoading(false);
+      return;
+    }
 
     try {
       if (isSignUp) {
         const { error } = await supabase.auth.signUp({ email, password });
         if (error) throw error;
-        // On success, typically auto logs in or asks to check email.
-        // If auto logged in, the onAuthStateChange in context handles the rest.
-        alert('Account created! You can now log in.');
+        
+        // Show inline success message instead of a window popup
+        setSuccess('Account created successfully! Please check your email inbox to verify your account before logging in.');
         setIsSignUp(false);
+        setPassword('');
       } else {
         const { error } = await supabase.auth.signInWithPassword({ email, password });
-        if (error) throw error;
+        if (error) {
+          // Check for the unverified email error
+          if (error.message.toLowerCase().includes('email not confirmed')) {
+            throw new Error('Your email is not verified yet. Please check your Gmail inbox and click the verification link sent by Supabase.');
+          }
+          throw error;
+        }
         navigate('/'); // Go home on successful login
       }
     } catch (err) {
@@ -53,6 +78,13 @@ export default function AuthPage() {
         </div>
       )}
 
+      {success && (
+        <div className="bg-green-950/50 border border-green-900 text-green-400 p-3 rounded-md text-sm flex items-start gap-2 mb-6">
+          <CheckCircle size={16} className="mt-0.5 shrink-0" />
+          <span>{success}</span>
+        </div>
+      )}
+
       <form onSubmit={handleAuth} className="space-y-4">
         <div>
           <label className="block text-xs font-semibold text-zinc-500 uppercase mb-1">Email</label>
@@ -60,6 +92,8 @@ export default function AuthPage() {
             <Mail className="absolute left-3 top-2.5 text-zinc-500" size={18} />
             <input 
               type="email" 
+              name="email"
+              autoComplete="email"
               required
               value={email}
               onChange={e => setEmail(e.target.value)}
@@ -75,14 +109,19 @@ export default function AuthPage() {
             <Lock className="absolute left-3 top-2.5 text-zinc-500" size={18} />
             <input 
               type="password" 
+              name="password"
+              autoComplete={isSignUp ? "new-password" : "current-password"}
               required
-              minLength={6}
+              minLength={isSignUp ? 8 : undefined}
               value={password}
               onChange={e => setPassword(e.target.value)}
               className="w-full bg-dark-base border border-zinc-700 rounded-md py-2 pl-10 pr-3 text-white focus:outline-none focus:border-accent transition-colors"
               placeholder="••••••••"
             />
           </div>
+          {isSignUp && (
+            <p className="text-xs text-zinc-500 mt-1">Must be at least 8 characters long.</p>
+          )}
         </div>
 
         <button 
@@ -98,7 +137,12 @@ export default function AuthPage() {
       <div className="mt-6 text-center text-sm text-zinc-500">
         {isSignUp ? 'Already have an account?' : "Don't have an account?"}
         <button 
-          onClick={() => setIsSignUp(!isSignUp)}
+          type="button"
+          onClick={() => {
+            setIsSignUp(!isSignUp);
+            setError(null);
+            setSuccess(null);
+          }}
           className="ml-2 text-accent hover:underline font-medium"
         >
           {isSignUp ? 'Sign In' : 'Sign Up'}
