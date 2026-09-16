@@ -28,7 +28,6 @@ import { db } from './services/db.js';
 
 
 
-import { useState, useRef, useEffect as useReactEffect } from 'react';
 
 const HeaderProfile = () => {
   const { session, profile } = useAuth();
@@ -83,6 +82,7 @@ const HeaderProfile = () => {
           >
             <BarChart3 size={16} /> Statistics
           </Link>
+
           <Link 
             to="/settings"
             onClick={() => setIsOpen(false)}
@@ -90,6 +90,16 @@ const HeaderProfile = () => {
           >
             <SettingsIcon size={16} /> Settings
           </Link>
+          {(session?.user?.email === 'iamaditya8090@gmail.com' || session?.user?.email === 'adityasingh8122005@gmail.com') && (
+            <Link 
+              to="/admin"
+              onClick={() => setIsOpen(false)}
+              className="flex items-center gap-3 px-4 py-2 text-sm text-accent hover:bg-zinc-800 hover:text-accent transition-colors"
+            >
+              <ShieldAlert size={16} /> Admin Panel
+            </Link>
+          )}
+
           <button 
             onClick={() => {
               setIsOpen(false);
@@ -146,9 +156,7 @@ function Navigation() {
         <NavItem to="/statistics" icon={BarChart3} label="Statistics" />
       )}
       <NavItem to="/surprise-me" icon={Dices} label="Surprise Me" />
-      {profile?.role === 'admin' && (
-        <NavItem to="/admin" icon={ShieldAlert} label="Admin" />
-      )}
+      
       <Notifications />
       <HeaderProfile />
     </nav>
