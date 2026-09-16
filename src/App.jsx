@@ -1,4 +1,11 @@
 import { BrowserRouter as Router, Routes, Route, Link, NavLink } from 'react-router-dom';
+import { AuthProvider, useAuth } from './contexts/AuthContext.jsx';
+import AuthPage from './pages/AuthPage.jsx';
+import { Navigate, useLocation } from 'react-router-dom';
+import { LogOut } from 'lucide-react';
+import { supabase } from './services/supabase.js';
+import { migrateLocalToCloud } from './services/cloudMigration.js';
+
 import { Search, Home, Library, Settings as SettingsIcon, BarChart3, Dices } from 'lucide-react';
 import SearchPage from './pages/SearchPage.jsx';
 import AnimeDetailsPage from './pages/AnimeDetailsPage.jsx';
