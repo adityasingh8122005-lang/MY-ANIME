@@ -2,9 +2,10 @@ import { useEffect, useState } from 'react';
 import { useParams, Link } from 'react-router-dom';
 import { supabase } from '../services/supabase';
 import { UserCircle, Calendar, ShieldAlert } from 'lucide-react';
-import { getAllUserAnime } from '../services/userService';
+import { useAuth } from '../contexts/AuthContext';
 
 export default function ProfilePage() {
+  const { session } = useAuth();
   const { username } = useParams();
   const [profile, setProfile] = useState(null);
   const [collection, setCollection] = useState([]);
@@ -32,9 +33,11 @@ export default function ProfilePage() {
       }
 
       setProfile(pData);
+      
+      const isOwner = session?.user?.id === pData.id;
 
-      // Fetch collection if public
-      if (pData.is_public) {
+      // Fetch collection if public OR if they are the owner
+      if (pData.is_public || isOwner) {
         const { data: animeData } = await supabase
           .from('user_anime')
           .select('*, anime_metadata(*)')
@@ -93,7 +96,7 @@ export default function ProfilePage() {
       {/* Collection Section */}
       <h2 className="text-xl font-bold text-white mb-4">Anime Collection</h2>
       
-      {!profile.is_public ? (
+      {!profile.is_public && session?.user?.id !== profile.id ? (
         <div className="bg-dark-surface border border-zinc-800 rounded-lg p-12 text-center flex flex-col items-center justify-center text-zinc-500">
           <ShieldAlert size={48} className="mb-4 text-zinc-600" />
           <p className="text-lg font-medium text-white mb-1">This profile is private</p>

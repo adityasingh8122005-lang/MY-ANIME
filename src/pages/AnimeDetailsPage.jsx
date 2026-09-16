@@ -10,7 +10,10 @@ import { getEpisodeFillerData, getSingleEpisodeFillerStatus, FILLER_STATUS, getA
 import { getImdbRating } from '../services/imdbApi';
 import { getFranchiseData } from '../services/franchiseApi';
 import { addFranchiseToDb } from '../services/franchiseService';
-import { Loader2, ArrowLeft, ExternalLink, Calendar, History, Trash2, CheckCircle, PlayCircle, List, PauseCircle, XCircle, Plus, Edit2 } from 'lucide-react';
+import { Loader2, ArrowLeft, ExternalLink, Calendar, History, Trash2, CheckCircle, PlayCircle, List, PauseCircle, XCircle, Plus, Edit2, MessageSquare, Lightbulb } from 'lucide-react';
+import ChatBox from '../components/ChatBox';
+import CommentsSection from '../components/CommentsSection';
+import TheoriesSection from '../components/TheoriesSection';
 
 export default function AnimeDetailsPage() {
   const { session } = useAuth();
@@ -22,6 +25,7 @@ export default function AnimeDetailsPage() {
   const [isLoading, setIsLoading] = useState(true);
   const [isAddingFranchise, setIsAddingFranchise] = useState(false);
   const [error, setError] = useState(null);
+  const [activeTab, setActiveTab] = useState('episodes');
 
   const handleAddFranchise = async () => {
     setIsAddingFranchise(true);
@@ -424,58 +428,101 @@ export default function AnimeDetailsPage() {
             </div>
           )}
 
-          {/* Episode List */}
+          {/* Tabs Section */}
           <div className="mb-8">
-            <div className="flex flex-col sm:flex-row sm:items-center justify-between mb-4 border-b border-zinc-800 pb-2 gap-2">
-              <h3 className="text-lg font-semibold text-white">Episodes</h3>
-              
-              <div className="flex flex-wrap gap-2">
-                {['All', FILLER_STATUS.CANON, FILLER_STATUS.FILLER, FILLER_STATUS.MIXED, FILLER_STATUS.UNKNOWN].map(filter => (
-                  <button 
-                    key={filter}
-                    onClick={() => setEpisodeFilter(filter)}
-                    className={`text-[10px] sm:text-xs px-2 py-1 rounded border transition-colors ${episodeFilter === filter ? 'bg-accent/20 border-accent text-accent' : 'bg-dark-surface border-zinc-700 text-zinc-400 hover:text-white'}`}
-                  >
-                    {filter}
-                  </button>
-                ))}
-              </div>
+            <div className="flex border-b border-zinc-800 mb-6 overflow-x-auto no-scrollbar">
+              <button
+                onClick={() => setActiveTab('episodes')}
+                className={`px-4 py-3 text-sm font-semibold whitespace-nowrap border-b-2 transition-colors \${activeTab === 'episodes' ? 'border-accent text-accent' : 'border-transparent text-zinc-400 hover:text-white'}`}
+              >
+                <div className="flex items-center gap-2"><List size={16} /> Episodes</div>
+              </button>
+              <button
+                onClick={() => setActiveTab('comments')}
+                className={`px-4 py-3 text-sm font-semibold whitespace-nowrap border-b-2 transition-colors \${activeTab === 'comments' ? 'border-accent text-accent' : 'border-transparent text-zinc-400 hover:text-white'}`}
+              >
+                <div className="flex items-center gap-2"><MessageSquare size={16} /> Comments</div>
+              </button>
+              <button
+                onClick={() => setActiveTab('chat')}
+                className={`px-4 py-3 text-sm font-semibold whitespace-nowrap border-b-2 transition-colors \${activeTab === 'chat' ? 'border-accent text-accent' : 'border-transparent text-zinc-400 hover:text-white'}`}
+              >
+                <div className="flex items-center gap-2"><MessageSquare size={16} /> Live Chat</div>
+              </button>
+              {(anime.status === 'Currently Airing' || anime.status === 'Not yet aired') && (
+                <button
+                  onClick={() => setActiveTab('theories')}
+                  className={`px-4 py-3 text-sm font-semibold whitespace-nowrap border-b-2 transition-colors \${activeTab === 'theories' ? 'border-purple-500 text-purple-400' : 'border-transparent text-zinc-400 hover:text-white'}`}
+                >
+                  <div className="flex items-center gap-2"><Lightbulb size={16} /> Theories</div>
+                </button>
+              )}
             </div>
-            
-            {episodesLoading ? (
-              <div className="flex items-center justify-center py-8">
-                <Loader2 size={24} className="animate-spin text-accent" />
-              </div>
-            ) : episodesList.length === 0 ? (
-              <p className="text-sm text-zinc-500 bg-dark-surface p-4 rounded text-center border border-zinc-800">No episode list data available from the source.</p>
-            ) : (
-              <div className="max-h-96 overflow-y-auto pr-2 space-y-2 no-scrollbar">
-                {episodesList
-                  .map(ep => {
-                    const status = getSingleEpisodeFillerStatus(fillerData, ep.mal_id);
-                    return { ...ep, fillerStatus: status };
-                  })
-                  .filter(ep => episodeFilter === 'All' || ep.fillerStatus === episodeFilter)
-                  .map(ep => (
-                  <div key={ep.mal_id} className="flex flex-col sm:flex-row sm:items-center justify-between bg-dark-surface border border-zinc-800 p-3 rounded text-sm hover:border-zinc-700 transition-colors gap-2">
-                    <div className="flex items-center gap-3 flex-1 min-w-0">
-                      <span className="text-zinc-500 font-mono w-10 shrink-0">E{ep.mal_id}</span>
-                      <span className="text-white font-medium truncate" title={ep.title || `Episode ${ep.mal_id}`}>{ep.title || `Episode ${ep.mal_id}`}</span>
-                    </div>
-                    <span className={`text-[10px] font-bold uppercase px-2 py-1 rounded shrink-0 self-start sm:self-auto ${
-                      ep.fillerStatus === FILLER_STATUS.FILLER ? 'bg-red-500/10 text-red-400 border border-red-500/20' :
-                      ep.fillerStatus === FILLER_STATUS.CANON ? 'bg-green-500/10 text-green-400 border border-green-500/20' :
-                      ep.fillerStatus === FILLER_STATUS.MIXED ? 'bg-yellow-500/10 text-yellow-400 border border-yellow-500/20' :
-                      'bg-zinc-800 text-zinc-400 border border-zinc-700'
-                    }`}>
-                      {ep.fillerStatus}
-                    </span>
+
+            {activeTab === 'episodes' && (
+              <div>
+                <div className="flex flex-col sm:flex-row sm:items-center justify-end mb-4 gap-2">
+                  <div className="flex flex-wrap gap-2">
+                    {['All', FILLER_STATUS.CANON, FILLER_STATUS.FILLER, FILLER_STATUS.MIXED, FILLER_STATUS.UNKNOWN].map(filter => (
+                      <button 
+                        key={filter}
+                        onClick={() => setEpisodeFilter(filter)}
+                        className={`text-[10px] sm:text-xs px-2 py-1 rounded border transition-colors \${episodeFilter === filter ? 'bg-accent/20 border-accent text-accent' : 'bg-dark-surface border-zinc-700 text-zinc-400 hover:text-white'}`}
+                      >
+                        {filter}
+                      </button>
+                    ))}
                   </div>
-                ))}
-                {episodesList.filter(ep => episodeFilter === 'All' || getSingleEpisodeFillerStatus(fillerData, ep.mal_id) === episodeFilter).length === 0 && (
-                   <p className="text-sm text-zinc-500 text-center py-4">No episodes match this filter.</p>
+                </div>
+                
+                {episodesLoading ? (
+                  <div className="flex items-center justify-center py-8">
+                    <Loader2 size={24} className="animate-spin text-accent" />
+                  </div>
+                ) : episodesList.length === 0 ? (
+                  <p className="text-sm text-zinc-500 bg-dark-surface p-4 rounded text-center border border-zinc-800">No episode list data available from the source.</p>
+                ) : (
+                  <div className="max-h-96 overflow-y-auto pr-2 space-y-2 no-scrollbar">
+                    {episodesList
+                      .map(ep => {
+                        const status = getSingleEpisodeFillerStatus(fillerData, ep.mal_id);
+                        return { ...ep, fillerStatus: status };
+                      })
+                      .filter(ep => episodeFilter === 'All' || ep.fillerStatus === episodeFilter)
+                      .map(ep => (
+                      <div key={ep.mal_id} className="flex flex-col sm:flex-row sm:items-center justify-between bg-dark-surface border border-zinc-800 p-3 rounded text-sm hover:border-zinc-700 transition-colors gap-2">
+                        <div className="flex items-center gap-3 flex-1 min-w-0">
+                          <span className="text-zinc-500 font-mono w-10 shrink-0">E{ep.mal_id}</span>
+                          <span className="text-white font-medium truncate" title={ep.title || `Episode ${ep.mal_id}`}>{ep.title || `Episode ${ep.mal_id}`}</span>
+                        </div>
+                        <span className={`text-[10px] font-bold uppercase px-2 py-1 rounded shrink-0 self-start sm:self-auto \${
+                          ep.fillerStatus === FILLER_STATUS.FILLER ? 'bg-red-500/10 text-red-400 border border-red-500/20' :
+                          ep.fillerStatus === FILLER_STATUS.CANON ? 'bg-green-500/10 text-green-400 border border-green-500/20' :
+                          ep.fillerStatus === FILLER_STATUS.MIXED ? 'bg-yellow-500/10 text-yellow-400 border border-yellow-500/20' :
+                          'bg-zinc-800 text-zinc-400 border border-zinc-700'
+                        }`}>
+                          {ep.fillerStatus}
+                        </span>
+                      </div>
+                    ))}
+                    {episodesList.filter(ep => episodeFilter === 'All' || getSingleEpisodeFillerStatus(fillerData, ep.mal_id) === episodeFilter).length === 0 && (
+                       <p className="text-sm text-zinc-500 text-center py-4">No episodes match this filter.</p>
+                    )}
+                  </div>
                 )}
               </div>
+            )}
+
+            {activeTab === 'comments' && (
+              <CommentsSection malId={anime.mal_id} />
+            )}
+
+            {activeTab === 'chat' && (
+              <ChatBox malId={anime.mal_id} />
+            )}
+
+            {activeTab === 'theories' && (
+              <TheoriesSection malId={anime.mal_id} />
             )}
           </div>
 

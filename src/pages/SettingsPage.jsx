@@ -14,6 +14,8 @@ export default function SettingsPage() {
   const [avatarUrl, setAvatarUrl] = useState('');
   const [homePreference, setHomePreference] = useState('trending');
   const [isPublic, setIsPublic] = useState(false);
+  const [showStatsInNavbar, setShowStatsInNavbar] = useState(true);
+  const [isAdminMode, setIsAdminMode] = useState(false);
   const [savingProfile, setSavingProfile] = useState(false);
 
   const fileInputRef = useRef(null);
@@ -24,6 +26,8 @@ export default function SettingsPage() {
       setAvatarUrl(profile.avatar_url || '');
       setHomePreference(profile.home_preference || 'trending');
       setIsPublic(profile.is_public || false);
+      setShowStatsInNavbar(profile.show_stats_in_navbar !== false);
+      setIsAdminMode(profile.role === 'admin');
     }
   }, [profile]);
 
@@ -63,6 +67,8 @@ export default function SettingsPage() {
         avatar_url: avatarUrl,
         home_preference: homePreference,
         is_public: isPublic,
+        show_stats_in_navbar: showStatsInNavbar,
+        role: (session.user.email === 'iamaditya8090@gmail.com' && isAdminMode) ? 'admin' : 'user',
         updated_at: new Date().toISOString()
       };
 
@@ -123,17 +129,49 @@ export default function SettingsPage() {
                 placeholder="aditya_07"
               />
             </div>
+            <p className="text-xs text-zinc-500 mt-1">Username must be unique.</p>
           </div>
 
           <div>
-            <label className="block text-xs font-semibold text-zinc-500 uppercase mb-1">Profile Picture URL</label>
-            <input 
-              type="text" 
-              value={avatarUrl}
-              onChange={e => setAvatarUrl(e.target.value)}
-              className="w-full bg-dark-base border border-zinc-700 rounded-md py-2 px-3 text-white focus:outline-none focus:border-accent transition-colors"
-              placeholder="https://example.com/avatar.png"
-            />
+            <label className="block text-xs font-semibold text-zinc-500 uppercase mb-1">Profile Picture</label>
+            <div className="flex items-center gap-4">
+              {avatarUrl ? (
+                <img src={avatarUrl} alt="Avatar Preview" className="w-16 h-16 rounded-full object-cover border border-zinc-700" />
+              ) : (
+                <div className="w-16 h-16 rounded-full bg-zinc-800 flex items-center justify-center border border-zinc-700">
+                  <UserCircle size={32} className="text-zinc-500" />
+                </div>
+              )}
+              <div className="flex-1">
+                <input 
+                  type="file" 
+                  accept="image/*"
+                  onChange={(e) => {
+                    const file = e.target.files[0];
+                    if (!file) return;
+                    const reader = new FileReader();
+                    reader.onload = (event) => {
+                      const img = new Image();
+                      img.onload = () => {
+                        const canvas = document.createElement('canvas');
+                        const MAX_WIDTH = 150;
+                        const scaleSize = MAX_WIDTH / img.width;
+                        canvas.width = MAX_WIDTH;
+                        canvas.height = img.height * scaleSize;
+                        const ctx = canvas.getContext('2d');
+                        ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
+                        const dataUrl = canvas.toDataURL('image/jpeg', 0.8);
+                        setAvatarUrl(dataUrl);
+                      };
+                      img.src = event.target.result;
+                    };
+                    reader.readAsDataURL(file);
+                  }}
+                  className="block w-full text-sm text-zinc-400 file:mr-4 file:py-2 file:px-4 file:rounded-md file:border-0 file:text-sm file:font-semibold file:bg-zinc-800 file:text-white hover:file:bg-zinc-700 cursor-pointer"
+                />
+                <p className="text-xs text-zinc-500 mt-1">Upload an image from your device.</p>
+              </div>
+            </div>
           </div>
 
           <hr className="border-zinc-800 my-4" />
@@ -196,6 +234,45 @@ export default function SettingsPage() {
               </label>
             </div>
           </div>
+
+          <hr className="border-zinc-800 my-4" />
+
+          <div>
+            <label className="block text-xs font-semibold text-zinc-500 uppercase mb-2">Display Preferences</label>
+            <p className="text-sm text-zinc-400 mb-3">
+              Controls whether the Statistics link is shown in the top navigation bar.
+            </p>
+            <label className="flex items-center gap-2 cursor-pointer group w-max">
+              <input 
+                type="checkbox" 
+                checked={showStatsInNavbar}
+                onChange={(e) => setShowStatsInNavbar(e.target.checked)}
+                className="accent-accent w-4 h-4"
+              />
+              <span className="text-sm text-zinc-300 group-hover:text-white">Show Statistics in Navbar</span>
+            </label>
+          </div>
+
+          {session?.user?.email === 'iamaditya8090@gmail.com' && (
+            <>
+              <hr className="border-zinc-800 my-4" />
+              <div>
+                <label className="block text-xs font-semibold text-zinc-500 uppercase mb-2">System Administrator</label>
+                <p className="text-sm text-zinc-400 mb-3">
+                  Toggle whether you have admin privileges (moderation and metrics) enabled for this session.
+                </p>
+                <label className="flex items-center gap-2 cursor-pointer group w-max">
+                  <input 
+                    type="checkbox" 
+                    checked={isAdminMode}
+                    onChange={(e) => setIsAdminMode(e.target.checked)}
+                    className="accent-red-500 w-4 h-4"
+                  />
+                  <span className="text-sm text-red-400 group-hover:text-red-300 font-medium">Enable Admin Mode</span>
+                </label>
+              </div>
+            </>
+          )}
 
           <button 
             type="submit" 

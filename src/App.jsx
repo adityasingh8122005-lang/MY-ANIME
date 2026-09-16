@@ -6,7 +6,7 @@ import { LogOut } from 'lucide-react';
 import { supabase } from './services/supabase.js';
 import { migrateLocalToCloud } from './services/cloudMigration.js';
 
-import { Search, Home, Library, Settings as SettingsIcon, BarChart3, Dices } from 'lucide-react';
+import { Search, Home, Library, Settings as SettingsIcon, BarChart3, Dices, ShieldAlert } from 'lucide-react';
 import SearchPage from './pages/SearchPage.jsx';
 import AnimeDetailsPage from './pages/AnimeDetailsPage.jsx';
 import HomePage from './pages/HomePage.jsx';
@@ -14,6 +14,7 @@ import MyAnimePage from './pages/MyAnimePage.jsx';
 import SettingsPage from './pages/SettingsPage.jsx';
 import StatisticsPage from './pages/StatisticsPage.jsx';
 import SurpriseMePage from './pages/SurpriseMePage.jsx';
+import AdminPanelPage from './pages/AdminPanelPage.jsx';
 import Notifications from './components/Notifications.jsx';
 import FranchiseDetailsPage from './pages/FranchiseDetailsPage.jsx';
 import clsx from 'clsx';
@@ -27,9 +28,23 @@ import { db } from './services/db.js';
 
 
 
+import { useState, useRef, useEffect as useReactEffect } from 'react';
+
 const HeaderProfile = () => {
   const { session, profile } = useAuth();
   const { openLoginModal } = useLoginModal();
+  const [isOpen, setIsOpen] = useState(false);
+  const dropdownRef = useRef(null);
+
+  useReactEffect(() => {
+    function handleClickOutside(event) {
+      if (dropdownRef.current && !dropdownRef.current.contains(event.target)) {
+        setIsOpen(false);
+      }
+    }
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => document.removeEventListener("mousedown", handleClickOutside);
+  }, []);
   
   if (!session) {
     return (
@@ -40,13 +55,53 @@ const HeaderProfile = () => {
   }
   
   return (
-    <Link to={profile?.username ? `/profile/${profile.username}` : '/settings'} className="p-1 shrink-0 rounded-full border border-zinc-700 hover:border-zinc-500 transition-colors overflow-hidden w-8 h-8 flex items-center justify-center bg-zinc-800">
-      {profile?.avatar_url ? (
-        <img src={profile.avatar_url} alt="Profile" className="w-full h-full object-cover" />
-      ) : (
-        <UserCircle size={24} className="text-zinc-400" />
+    <div className="relative" ref={dropdownRef}>
+      <button 
+        onClick={() => setIsOpen(!isOpen)}
+        className="p-1 shrink-0 rounded-full border border-zinc-700 hover:border-zinc-500 transition-colors overflow-hidden w-8 h-8 flex items-center justify-center bg-zinc-800 focus:outline-none"
+      >
+        {profile?.avatar_url ? (
+          <img src={profile.avatar_url} alt="Profile" className="w-full h-full object-cover" />
+        ) : (
+          <UserCircle size={24} className="text-zinc-400" />
+        )}
+      </button>
+      
+      {isOpen && (
+        <div className="absolute right-0 mt-2 w-48 bg-dark-surface border border-zinc-700 rounded-md shadow-lg py-1 z-50">
+          <Link 
+            to={profile?.username ? `/profile/${profile.username}` : '/settings'}
+            onClick={() => setIsOpen(false)}
+            className="flex items-center gap-3 px-4 py-2 text-sm text-zinc-300 hover:bg-zinc-800 hover:text-white transition-colors"
+          >
+            <UserCircle size={16} /> Profile
+          </Link>
+          <Link 
+            to="/statistics"
+            onClick={() => setIsOpen(false)}
+            className="flex items-center gap-3 px-4 py-2 text-sm text-zinc-300 hover:bg-zinc-800 hover:text-white transition-colors"
+          >
+            <BarChart3 size={16} /> Statistics
+          </Link>
+          <Link 
+            to="/settings"
+            onClick={() => setIsOpen(false)}
+            className="flex items-center gap-3 px-4 py-2 text-sm text-zinc-300 hover:bg-zinc-800 hover:text-white transition-colors"
+          >
+            <SettingsIcon size={16} /> Settings
+          </Link>
+          <button 
+            onClick={() => {
+              setIsOpen(false);
+              supabase.auth.signOut();
+            }}
+            className="w-full flex items-center gap-3 px-4 py-2 text-sm text-red-400 hover:bg-zinc-800 hover:text-red-300 transition-colors"
+          >
+            <LogOut size={16} /> Logout
+          </button>
+        </div>
       )}
-    </Link>
+    </div>
   );
 };
 
@@ -76,6 +131,27 @@ function NavItem({ to, icon: Icon, label }) {
       <Icon size={18} />
       <span className="hidden sm:inline">{label}</span>
     </NavLink>
+  );
+}
+
+function Navigation() {
+  const { profile } = useAuth();
+  
+  return (
+    <nav className="flex gap-2 overflow-x-auto no-scrollbar items-center">
+      <NavItem to="/" icon={Home} label="Home" />
+      <NavItem to="/my-anime" icon={Library} label="My Anime" />
+      <NavItem to="/search" icon={Search} label="Search" />
+      {profile?.show_stats_in_navbar !== false && (
+        <NavItem to="/statistics" icon={BarChart3} label="Statistics" />
+      )}
+      <NavItem to="/surprise-me" icon={Dices} label="Surprise Me" />
+      {profile?.role === 'admin' && (
+        <NavItem to="/admin" icon={ShieldAlert} label="Admin" />
+      )}
+      <Notifications />
+      <HeaderProfile />
+    </nav>
   );
 }
 
@@ -118,16 +194,7 @@ function App() {
             <Link to="/" className="text-xl font-bold tracking-wider text-accent font-mono shrink-0">
               MY AN!ME
             </Link>
-            <nav className="flex gap-2 overflow-x-auto no-scrollbar">
-              <NavItem to="/" icon={Home} label="Home" />
-              <NavItem to="/my-anime" icon={Library} label="My Anime" />
-              <NavItem to="/search" icon={Search} label="Search" />
-              <NavItem to="/statistics" icon={BarChart3} label="Statistics" />
-              <NavItem to="/surprise-me" icon={Dices} label="Surprise Me" />
-              <NavItem to="/settings" icon={SettingsIcon} label="Settings" />
-              <Notifications />
-              <HeaderProfile />
-            </nav>
+            <Navigation />
           </div>
         </header>
 
@@ -143,6 +210,7 @@ function App() {
             <Route path="/anime/:id" element={<AnimeDetailsPage />} />
             <Route path="/franchise/:id" element={<FranchiseDetailsPage />} />
             <Route path="/profile/:username" element={<ProfilePage />} />
+            <Route path="/admin" element={<ProtectedRoute><AdminPanelPage /></ProtectedRoute>} />
           </Routes>
         </main>
       </div>
