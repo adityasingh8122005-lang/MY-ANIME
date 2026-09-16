@@ -1,153 +1,164 @@
-import { useState, useEffect, useRef } from 'react';
+import { useState } from 'react';
 import { Link } from 'react-router-dom';
-import { searchLocalAnime, searchJikanAnime } from '../services/jikanApi';
-import { Search as SearchIcon, Loader2 } from 'lucide-react';
+import { Search as SearchIcon, Loader2, UserCircle } from 'lucide-react';
+import { supabase } from '../services/supabase';
 
-
-function groupFranchises(results) {
-  const sorted = [...results].sort((a, b) => (a.year || 9999) - (b.year || 9999));
-  const groups = [];
-  const normalize = (str) => str ? str.toLowerCase().replace(/[^a-z0-9]/g, ' ').replace(/\s+/g, ' ').trim() : '';
-
-  sorted.forEach(anime => {
-    const titleNorm = normalize(anime.englishTitle || anime.title);
-    const romajiNorm = normalize(anime.title);
-    
-    let matchedGroup = null;
-    for (let group of groups) {
-      const gTitleNorm = normalize(group.main.englishTitle || group.main.title);
-      const gRomajiNorm = normalize(group.main.title);
-      
-      if (
-         (gTitleNorm.length > 3 && titleNorm.startsWith(gTitleNorm)) || 
-         (gRomajiNorm.length > 3 && romajiNorm.startsWith(gRomajiNorm))
-      ) {
-        matchedGroup = group;
-        break;
-      }
+const SEARCH_QUERY = `
+query ($search: String) {
+  Page(page: 1, perPage: 20) {
+    media(search: $search, type: ANIME, sort: SEARCH_MATCH, isAdult: false) {
+      idMal
+      title { romaji english }
+      coverImage { large }
+      episodes
+      status
     }
-
-    if (matchedGroup) {
-      matchedGroup.items.push(anime);
-    } else {
-      groups.push({ main: anime, items: [anime] });
-    }
-  });
-  return groups;
+  }
 }
+`;
 
 export default function SearchPage() {
+  const [mode, setMode] = useState('anime'); // 'anime' | 'profiles'
   const [query, setQuery] = useState('');
   const [results, setResults] = useState([]);
-  const [isLoading, setIsLoading] = useState(false);
-  const [error, setError] = useState(null);
-  
-  const timeoutRef = useRef(null);
+  const [profileResults, setProfileResults] = useState([]);
+  const [isSearching, setIsSearching] = useState(false);
+  const [hasSearched, setHasSearched] = useState(false);
 
-  useEffect(() => {
-    if (timeoutRef.current) clearTimeout(timeoutRef.current);
+  const handleSearch = async (e) => {
+    e.preventDefault();
+    if (!query.trim()) return;
 
-    if (query.trim().length < 3) {
-      setResults([]);
-      setError(null);
-      return;
-    }
-
-    timeoutRef.current = setTimeout(async () => {
-      setIsLoading(true);
-      setError(null);
-      
-      // 1. Show local results immediately
+    setIsSearching(true);
+    setHasSearched(true);
+    
+    if (mode === 'anime') {
       try {
-        const localData = await searchLocalAnime(query);
-        setResults(localData);
-      } catch (e) {
-        console.error("Local search error", e);
-      }
-
-      // 2. Fetch from Jikan and merge
-      try {
-        const remoteData = await searchJikanAnime(query);
-        
-        // Merge in state (assuming remoteData has latest info)
-        setResults(prev => {
-          const map = new Map();
-          prev.forEach(item => map.set(item.malId, item));
-          remoteData.forEach(item => map.set(item.malId, item));
-          return Array.from(map.values());
+        const res = await fetch('https://graphql.anilist.co', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ query: SEARCH_QUERY, variables: { search: query } })
         });
+        const json = await res.json();
+        setResults(json.data.Page.media.filter(a => a.idMal));
       } catch (err) {
-        if (results.length === 0) {
-          setError('Failed to fetch results.');
-        }
-      } finally {
-        setIsLoading(false);
+        console.error(err);
       }
-    }, 600); // 600ms debounce
-
-    return () => clearTimeout(timeoutRef.current);
-  }, [query]);
+    } else {
+      // Search Profiles
+      try {
+        const cleanQuery = query.replace('@', '').toLowerCase();
+        const { data, error } = await supabase
+          .from('profiles')
+          .select('*')
+          .ilike('username', `%${cleanQuery}%`)
+          .limit(20);
+          
+        if (!error && data) {
+          setProfileResults(data);
+        }
+      } catch (err) {
+        console.error(err);
+      }
+    }
+    
+    setIsSearching(false);
+  };
 
   return (
-    <div className="max-w-4xl mx-auto w-full">
-      <div className="relative mb-8">
-        <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none text-zinc-500">
-          <SearchIcon size={20} />
-        </div>
-        <input
-          type="text"
-          value={query}
-          onChange={(e) => setQuery(e.target.value)}
-          placeholder="Search for anime (min. 3 characters)..."
-          className="w-full bg-dark-surface border border-zinc-800 rounded-lg py-4 pl-12 pr-4 text-white placeholder-zinc-500 focus:outline-none focus:border-accent focus:ring-1 focus:ring-accent transition-all"
-        />
-        {isLoading && (
-          <div className="absolute inset-y-0 right-0 pr-4 flex items-center">
-            <Loader2 size={20} className="animate-spin text-accent" />
-          </div>
-        )}
+    <div className="max-w-7xl mx-auto">
+      <div className="mb-8 text-center pt-8">
+        <h1 className="text-3xl font-bold text-white mb-2 flex items-center justify-center gap-3">
+          <SearchIcon className="text-accent" size={32} /> Search
+        </h1>
+        <p className="text-zinc-400">Find your favorite anime or discover other users.</p>
       </div>
 
-      {error && <div className="text-red-500 text-center py-4">{error}</div>}
+      <div className="max-w-2xl mx-auto mb-10">
+        <div className="flex justify-center mb-6">
+          <div className="bg-dark-surface p-1 rounded-lg inline-flex border border-zinc-800">
+            <button 
+              onClick={() => { setMode('anime'); setHasSearched(false); setQuery(''); }}
+              className={`px-6 py-2 rounded-md text-sm font-bold transition-colors ${mode === 'anime' ? 'bg-zinc-800 text-white' : 'text-zinc-400 hover:text-white'}`}
+            >
+              Anime
+            </button>
+            <button 
+              onClick={() => { setMode('profiles'); setHasSearched(false); setQuery(''); }}
+              className={`px-6 py-2 rounded-md text-sm font-bold transition-colors ${mode === 'profiles' ? 'bg-zinc-800 text-white' : 'text-zinc-400 hover:text-white'}`}
+            >
+              Profiles
+            </button>
+          </div>
+        </div>
 
-      {!isLoading && !error && query.length >= 3 && results.length === 0 && (
-        <div className="text-zinc-500 text-center py-12">
-          No results found for "{query}"
+        <form onSubmit={handleSearch} className="relative">
+          <input
+            type="text"
+            value={query}
+            onChange={e => setQuery(e.target.value)}
+            placeholder={mode === 'anime' ? "Search for an anime..." : "Search by username (e.g. aditya_07)..."}
+            className="w-full bg-dark-surface border-2 border-zinc-700 focus:border-accent rounded-lg py-4 pl-12 pr-4 text-white text-lg focus:outline-none transition-colors"
+          />
+          <SearchIcon className="absolute left-4 top-4 text-zinc-500" size={24} />
+          <button 
+            type="submit"
+            className="absolute right-2 top-2 bottom-2 bg-accent hover:bg-accent-hover text-white px-6 rounded-md font-bold transition-colors"
+          >
+            {isSearching ? <Loader2 size={20} className="animate-spin" /> : 'Search'}
+          </button>
+        </form>
+      </div>
+
+      {mode === 'anime' ? (
+        <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-4">
+          {results.map(anime => (
+            <Link key={anime.idMal} to={`/anime/${anime.idMal}`} className="group relative rounded-lg overflow-hidden bg-dark-surface border border-zinc-800 hover:border-zinc-500 transition-colors">
+              <div className="aspect-[2/3] w-full bg-zinc-800 relative">
+                {anime.coverImage?.large ? (
+                  <img src={anime.coverImage.large} alt={anime.title.english || anime.title.romaji} className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300" />
+                ) : (
+                  <div className="w-full h-full flex items-center justify-center text-xs text-zinc-500">No Image</div>
+                )}
+                {anime.status && (
+                  <div className="absolute top-2 left-2 bg-dark-base/90 backdrop-blur-sm px-2 py-1 rounded text-[10px] font-bold text-white border border-zinc-700">
+                    {anime.status === 'RELEASING' ? 'ONGOING' : 'COMPLETED'}
+                  </div>
+                )}
+              </div>
+              <div className="p-3">
+                <h3 className="text-sm font-bold text-white line-clamp-1 group-hover:text-accent transition-colors" title={anime.title.english || anime.title.romaji}>
+                  {anime.title.english || anime.title.romaji}
+                </h3>
+              </div>
+            </Link>
+          ))}
+          {hasSearched && !isSearching && results.length === 0 && (
+            <div className="col-span-full text-center py-12 text-zinc-500">No anime found.</div>
+          )}
+        </div>
+      ) : (
+        <div className="max-w-3xl mx-auto flex flex-col gap-4">
+          {profileResults.map(p => (
+            <Link key={p.id} to={`/profile/${p.username}`} className="bg-dark-surface border border-zinc-800 hover:border-zinc-500 rounded-lg p-4 flex items-center gap-4 transition-colors">
+              <div className="w-16 h-16 rounded-full overflow-hidden bg-zinc-800 shrink-0 border-2 border-zinc-700">
+                {p.avatar_url ? (
+                  <img src={p.avatar_url} alt={p.username} className="w-full h-full object-cover" />
+                ) : (
+                  <UserCircle size={64} className="text-zinc-500 w-full h-full" />
+                )}
+              </div>
+              <div>
+                <h3 className="text-lg font-bold text-white">@{p.username}</h3>
+                <p className="text-xs text-zinc-500">Joined {new Date(p.created_at).toLocaleDateString()}</p>
+              </div>
+            </Link>
+          ))}
+          {hasSearched && !isSearching && profileResults.length === 0 && (
+            <div className="text-center py-12 text-zinc-500">No profiles found matching that username.</div>
+          )}
         </div>
       )}
-
-      
-      <div className="flex flex-col gap-8">
-        {groupFranchises(results).map((group) => (
-          <div key={group.main.malId} className="flex flex-col gap-4 bg-dark-surface border border-zinc-800 rounded-xl p-5">
-            <h2 className="text-lg font-bold text-white pl-3 border-l-4 border-accent">
-              {group.items.length > 1 ? `${group.main.englishTitle || group.main.title} (Franchise)` : (group.main.englishTitle || group.main.title)}
-            </h2>
-            <div className="flex overflow-x-auto gap-4 pb-2 snap-x scrollbar-thin scrollbar-thumb-zinc-700 scrollbar-track-transparent">
-              {group.items.map((anime) => (
-                <Link key={anime.malId} to={`/anime/${anime.malId}`} className="shrink-0 w-36 sm:w-40 snap-start group relative rounded-lg overflow-hidden bg-dark-base border border-zinc-800 hover:border-accent transition-colors flex flex-col h-full">
-                  <div className="aspect-[2/3] w-full bg-zinc-900 relative">
-                    {anime.poster ? (
-                      <img src={anime.poster} alt={anime.title} className="w-full h-full object-cover group-hover:opacity-80 transition-opacity" loading="lazy" />
-                    ) : (
-                      <div className="w-full h-full flex items-center justify-center text-zinc-600 text-xs">No Image</div>
-                    )}
-                  </div>
-                  <div className="p-3 flex-1 flex flex-col">
-                    <h3 className="font-medium text-xs text-zinc-100 line-clamp-2" title={anime.title}>
-                      {anime.title}
-                    </h3>
-                    <p className="text-[10px] text-zinc-500 mt-auto pt-2">
-                      {anime.year ? anime.year : 'Unknown Year'} • {anime.episodes ? `${anime.episodes} eps` : 'Ongoing'}
-                    </p>
-                  </div>
-                </Link>
-              ))}
-            </div>
-          </div>
-        ))}
-      </div>
-
     </div>
   );
 }

@@ -1,4 +1,8 @@
 import { useState, useEffect } from 'react';
+
+import { useAuth } from '../contexts/AuthContext';
+import { useLoginModal } from '../contexts/LoginModalContext';
+
 import { useParams, Link } from 'react-router-dom';
 import { getAnimeDetails, getAnimeEpisodes } from '../services/jikanApi';
 import { getUserAnime, updateUserAnime, removeUserAnime, addWatchHistory, getWatchHistory, updateWatchHistory, deleteWatchHistory } from '../services/userService';
@@ -9,6 +13,8 @@ import { addFranchiseToDb } from '../services/franchiseService';
 import { Loader2, ArrowLeft, ExternalLink, Calendar, History, Trash2, CheckCircle, PlayCircle, List, PauseCircle, XCircle, Plus, Edit2 } from 'lucide-react';
 
 export default function AnimeDetailsPage() {
+  const { session } = useAuth();
+  const { openLoginModal } = useLoginModal();
   const { id } = useParams();
   const [anime, setAnime] = useState(null);
   const [userAnime, setUserAnime] = useState(null);
@@ -121,6 +127,7 @@ export default function AnimeDetailsPage() {
   };
 
   const handleRatingChange = async (rating) => {
+    if (!session) { openLoginModal(); return; }
     let newValue = parseInt(rating, 10);
     if (isNaN(newValue)) newValue = null;
     else if (newValue < 1) newValue = 1;
@@ -131,6 +138,7 @@ export default function AnimeDetailsPage() {
   };
 
   const handleRemove = () => {
+    if (!session) { openLoginModal(); return; }
     setConfirmDialog({
       isOpen: true,
       title: 'Remove Anime',
@@ -145,6 +153,7 @@ export default function AnimeDetailsPage() {
 
   const handleAddHistory = async (e) => {
     e.preventDefault();
+    if (!session) { openLoginModal(); return; }
     if (!historyDate || historyEps < 1) return;
     
     await addWatchHistory(id, historyDate, historyEps);

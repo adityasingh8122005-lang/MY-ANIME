@@ -18,8 +18,37 @@ import Notifications from './components/Notifications.jsx';
 import FranchiseDetailsPage from './pages/FranchiseDetailsPage.jsx';
 import clsx from 'clsx';
 import { useEffect } from 'react';
+import { LoginModalProvider, useLoginModal } from './contexts/LoginModalContext.jsx';
+import LoginModal from './components/LoginModal.jsx';
+import ProfilePage from './pages/ProfilePage.jsx';
+import { UserCircle } from 'lucide-react';
+
 import { db } from './services/db.js';
 
+
+
+const HeaderProfile = () => {
+  const { session, profile } = useAuth();
+  const { openLoginModal } = useLoginModal();
+  
+  if (!session) {
+    return (
+      <button onClick={openLoginModal} className="p-1 text-zinc-400 hover:text-white transition-colors" title="Account">
+        <UserCircle size={24} />
+      </button>
+    );
+  }
+  
+  return (
+    <Link to={profile?.username ? `/profile/${profile.username}` : '/settings'} className="p-1 shrink-0 rounded-full border border-zinc-700 hover:border-zinc-500 transition-colors overflow-hidden w-8 h-8 flex items-center justify-center bg-zinc-800">
+      {profile?.avatar_url ? (
+        <img src={profile.avatar_url} alt="Profile" className="w-full h-full object-cover" />
+      ) : (
+        <UserCircle size={24} className="text-zinc-400" />
+      )}
+    </Link>
+  );
+};
 
 const ProtectedRoute = ({ children }) => {
   const { session, loading } = useAuth();
@@ -81,6 +110,7 @@ function App() {
 
   return (
     <AuthProvider>
+      <LoginModalProvider>
     <Router>
       <div className="min-h-screen flex flex-col">
         <header className="bg-dark-surface border-b border-zinc-800 sticky top-0 z-50">
@@ -96,9 +126,7 @@ function App() {
               <NavItem to="/surprise-me" icon={Dices} label="Surprise Me" />
               <NavItem to="/settings" icon={SettingsIcon} label="Settings" />
               <Notifications />
-              <button onClick={() => supabase.auth.signOut()} className="p-2 text-zinc-400 hover:text-red-400 transition-colors" title="Sign Out">
-                <LogOut size={20} />
-              </button>
+              <HeaderProfile />
             </nav>
           </div>
         </header>
@@ -117,6 +145,8 @@ function App() {
         </main>
       </div>
     </Router>
+            <LoginModal />
+      </LoginModalProvider>
     </AuthProvider>
   );
 }

@@ -1,10 +1,16 @@
 import { useState, useEffect } from 'react';
+
+import { useAuth } from '../contexts/AuthContext';
+import { useLoginModal } from '../contexts/LoginModalContext';
+
 import { useParams, Link } from 'react-router-dom';
 import { getFranchiseWithProgress } from '../services/franchiseService';
 import { updateUserAnime } from '../services/userService';
 import { Loader2, ArrowLeft, Folder, Tv, Film, CheckCircle } from 'lucide-react';
 
 export default function FranchiseDetailsPage() {
+  const { session } = useAuth();
+  const { openLoginModal } = useLoginModal();
   const { id } = useParams();
   const [franchise, setFranchise] = useState(null);
   const [isLoading, setIsLoading] = useState(true);
