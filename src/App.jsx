@@ -148,18 +148,22 @@ function Navigation() {
   const { profile } = useAuth();
   
   return (
-    <nav className="flex gap-2 overflow-x-auto no-scrollbar items-center">
-      <NavItem to="/" icon={Home} label="Home" />
-      <NavItem to="/my-anime" icon={Library} label="My Anime" />
-      <NavItem to="/search" icon={Search} label="Search" />
-      {profile?.show_stats_in_navbar !== false && (
-        <NavItem to="/statistics" icon={BarChart3} label="Statistics" />
-      )}
-      <NavItem to="/surprise-me" icon={Dices} label="Surprise Me" />
+    <div className="flex-1 flex items-center justify-end overflow-hidden ml-4">
+      <nav className="flex gap-2 overflow-x-auto no-scrollbar items-center mr-4 max-w-full">
+        <NavItem to="/" icon={Home} label="Home" />
+        <NavItem to="/my-anime" icon={Library} label="My Anime" />
+        <NavItem to="/search" icon={Search} label="Search" />
+        {profile?.show_stats_in_navbar !== false && (
+          <NavItem to="/statistics" icon={BarChart3} label="Statistics" />
+        )}
+        <NavItem to="/surprise-me" icon={Dices} label="Surprise Me" />
+      </nav>
       
-      <Notifications />
-      <HeaderProfile />
-    </nav>
+      <div className="flex items-center gap-2 shrink-0 border-l border-zinc-800 pl-4">
+        <Notifications />
+        <HeaderProfile />
+      </div>
+    </div>
   );
 }
 
