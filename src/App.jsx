@@ -18,7 +18,7 @@ import AdminPanelPage from './pages/AdminPanelPage.jsx';
 import Notifications from './components/Notifications.jsx';
 import FranchiseDetailsPage from './pages/FranchiseDetailsPage.jsx';
 import clsx from 'clsx';
-import { useEffect } from 'react';
+import { useEffect, useState, useRef } from 'react';
 import { LoginModalProvider, useLoginModal } from './contexts/LoginModalContext.jsx';
 import LoginModal from './components/LoginModal.jsx';
 import ProfilePage from './pages/ProfilePage.jsx';
@@ -36,7 +36,7 @@ const HeaderProfile = () => {
   const [isOpen, setIsOpen] = useState(false);
   const dropdownRef = useRef(null);
 
-  useReactEffect(() => {
+  useEffect(() => {
     function handleClickOutside(event) {
       if (dropdownRef.current && !dropdownRef.current.contains(event.target)) {
         setIsOpen(false);
