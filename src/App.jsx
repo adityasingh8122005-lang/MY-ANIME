@@ -146,8 +146,8 @@ function App() {
           </Routes>
         </main>
       </div>
-    </Router>
             <LoginModal />
+    </Router>
       </LoginModalProvider>
     </AuthProvider>
   );
