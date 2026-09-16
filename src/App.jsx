@@ -169,7 +169,8 @@ function Navigation() {
   );
 }
 
-function App() {
+function AppContent() {
+  const { adminMode } = useAuth();
 
   useEffect(() => {
     async function fixDb() {
@@ -198,9 +199,11 @@ function App() {
     fixDb();
   }, []);
 
+  if (adminMode) {
+    return <AdminPanelPage />;
+  }
+
   return (
-    <AuthProvider>
-      <LoginModalProvider>
     <Router>
       <div className="min-h-screen flex flex-col">
         <header className="bg-dark-surface border-b border-zinc-800 sticky top-0 z-50">
@@ -230,6 +233,14 @@ function App() {
       </div>
             <LoginModal />
     </Router>
+  );
+}
+
+function App() {
+  return (
+    <AuthProvider>
+      <LoginModalProvider>
+        <AppContent />
       </LoginModalProvider>
     </AuthProvider>
   );
