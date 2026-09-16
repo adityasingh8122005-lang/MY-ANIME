@@ -1,173 +1,209 @@
-import { db } from './db.js';
+import { supabase } from './supabase.js';
 
-/**
- * Gets a user's personal tracking data for a specific anime
- */
-export async function getUserAnime(malId) {
-  return await db.userAnime.get(Number(malId));
+// Helper to map DB snake_case to JS camelCase
+function mapToCamelCase(row) {
+  if (!row) return null;
+  return {
+    ...row,
+    malId: row.mal_id,
+    personalStatus: row.personal_status,
+    episodesWatched: row.episodes_watched,
+    personalRating: row.personal_rating,
+    franchiseId: row.franchise_id,
+    addedAt: row.added_at,
+    updatedAt: row.updated_at
+  };
 }
 
-/**
- * Gets all anime in the user's personal collection, optionally joined with metadata
- */
-export async function getAllUserAnime(withMetadata = true) {
-  const userList = await db.userAnime.toArray();
-  
-  if (!withMetadata) return userList;
+// Get the current logged-in user ID
+async function getUserId() {
+  const { data } = await supabase.auth.getSession();
+  return data?.session?.user?.id;
+}
 
-  // Join with metadata
+export async function getUserAnime(malId) {
+  const userId = await getUserId();
+  if (!userId) return null;
+  
+  const { data, error } = await supabase
+    .from('user_anime')
+    .select('*')
+    .eq('user_id', userId)
+    .eq('mal_id', Number(malId))
+    .maybeSingle();
+    
+  if (error) console.error(error);
+  return mapToCamelCase(data);
+}
+
+export async function getAllUserAnime(withMetadata = true) {
+  const userId = await getUserId();
+  if (!userId) return [];
+
+  const { data: userAnimes, error } = await supabase
+    .from('user_anime')
+    .select('*')
+    .eq('user_id', userId);
+    
+  if (error) {
+    console.error(error);
+    return [];
+  }
+
+  const camelList = userAnimes.map(mapToCamelCase);
+
+  if (!withMetadata || camelList.length === 0) return camelList;
+
+  const malIds = camelList.map(u => u.malId);
+  const { data: metadataList } = await supabase
+    .from('anime_metadata')
+    .select('*')
+    .in('mal_id', malIds);
+
   const metadataMap = new Map();
-  const malIds = userList.map(u => u.malId);
-  
-  // Bulk get metadata
-  const metadataList = await db.animeMetadata.where('malId').anyOf(malIds).toArray();
-  metadataList.forEach(m => metadataMap.set(m.malId, m));
-  
-  return userList.map(u => ({
+  if (metadataList) {
+    metadataList.forEach(m => {
+      metadataMap.set(m.mal_id, {
+        malId: m.mal_id,
+        title: m.title,
+        englishTitle: m.english_title,
+        poster: m.poster,
+        episodes: m.episodes,
+        status: m.status,
+        duration: m.duration
+      });
+    });
+  }
+
+  return camelList.map(u => ({
     ...u,
     metadata: metadataMap.get(u.malId) || null
   }));
 }
 
-/**
- * Updates or adds an anime to the personal collection
- */
 export async function updateUserAnime(malId, updates) {
-  const id = Number(malId);
-  const existing = await getUserAnime(id);
-  
+  const userId = await getUserId();
+  if (!userId) return null;
+
+  const existing = await getUserAnime(malId);
   const now = new Date().toISOString();
   
+  const payload = {
+    user_id: userId,
+    mal_id: Number(malId),
+    updated_at: now
+  };
+
+  if (updates.personalStatus !== undefined) payload.personal_status = updates.personalStatus;
+  if (updates.episodesWatched !== undefined) payload.episodes_watched = updates.episodesWatched;
+  if (updates.personalRating !== undefined) payload.personal_rating = updates.personalRating;
+  if (updates.franchiseId !== undefined) payload.franchise_id = updates.franchiseId;
+
   if (existing) {
-    const updated = {
-      ...existing,
-      ...updates,
-      updatedAt: now
-    };
-    await db.userAnime.put(updated);
-    return updated;
+    const { data, error } = await supabase
+      .from('user_anime')
+      .update(payload)
+      .eq('user_id', userId)
+      .eq('mal_id', Number(malId))
+      .select()
+      .single();
+    if (error) throw error;
+    return mapToCamelCase(data);
   } else {
-    const fresh = {
-      malId: id,
-      personalStatus: 'Plan to Watch',
-      episodesWatched: 0,
-      personalRating: null,
-      addedAt: now,
-      updatedAt: now,
-      ...updates
-    };
-    await db.userAnime.put(fresh);
-    return fresh;
+    payload.added_at = now;
+    payload.personal_status = payload.personal_status || 'Plan to Watch';
+    payload.episodes_watched = payload.episodes_watched || 0;
+    
+    const { data, error } = await supabase
+      .from('user_anime')
+      .insert(payload)
+      .select()
+      .single();
+    if (error) throw error;
+    return mapToCamelCase(data);
   }
 }
 
-/**
- * Removes an anime from the personal collection
- */
 export async function removeUserAnime(malId) {
-  await db.userAnime.delete(Number(malId));
+  const userId = await getUserId();
+  if (!userId) return;
+  await supabase
+    .from('user_anime')
+    .delete()
+    .eq('user_id', userId)
+    .eq('mal_id', Number(malId));
 }
 
-/**
- * Adds a manual watch history entry
- */
 export async function addWatchHistory(malId, date, episodesWatched) {
-  return await db.watchHistory.add({
-    malId: Number(malId),
-    date,
-    episodesWatched: Number(episodesWatched)
-  });
+  const userId = await getUserId();
+  if (!userId) return;
+  const { data } = await supabase
+    .from('watch_history')
+    .insert({
+      user_id: userId,
+      mal_id: Number(malId),
+      date,
+      episodes_watched: Number(episodesWatched)
+    })
+    .select()
+    .single();
+  return data;
 }
 
-/**
- * Updates a specific watch history entry
- */
 export async function updateWatchHistory(id, date, episodesWatched) {
-  return await db.watchHistory.update(Number(id), {
-    date,
-    episodesWatched: Number(episodesWatched)
-  });
+  const userId = await getUserId();
+  if (!userId) return;
+  const { data } = await supabase
+    .from('watch_history')
+    .update({
+      date,
+      episodes_watched: Number(episodesWatched)
+    })
+    .eq('id', id)
+    .eq('user_id', userId)
+    .select()
+    .single();
+  return data;
 }
 
-/**
- * Deletes a specific watch history entry
- */
 export async function deleteWatchHistory(id) {
-  return await db.watchHistory.delete(Number(id));
+  const userId = await getUserId();
+  if (!userId) return;
+  await supabase
+    .from('watch_history')
+    .delete()
+    .eq('id', id)
+    .eq('user_id', userId);
 }
 
-/**
- * Gets watch history for a specific anime
- */
 export async function getWatchHistory(malId) {
-  return await db.watchHistory.where('malId').equals(Number(malId)).reverse().sortBy('date');
+  const userId = await getUserId();
+  if (!userId) return [];
+  let query = supabase
+    .from('watch_history')
+    .select('*')
+    .eq('user_id', userId)
+    .order('date', { ascending: false });
+    
+  if (malId) {
+    query = query.eq('mal_id', Number(malId));
+  }
+  
+  const { data, error } = await query;
+  if (error) return [];
+  return data.map(h => ({
+    ...h,
+    malId: h.mal_id,
+    episodesWatched: h.episodes_watched
+  }));
 }
 
-/**
- * Exports user data to a JSON string
- */
+export async function getAllWatchHistory() {
+  return getWatchHistory();
+}
+
+// Stubs for legacy import/export
 export async function exportUserData() {
-  const userAnime = await db.userAnime.toArray();
-  const watchHistory = await db.watchHistory.toArray();
-  
-  return JSON.stringify({
-    version: 1,
-    exportDate: new Date().toISOString(),
-    data: {
-      userAnime,
-      watchHistory
-    }
-  });
+  return JSON.stringify({ error: "Export is now handled via cloud." });
 }
-
-/**
- * Imports user data from a parsed JSON object
- */
-export async function importUserData(parsedData) {
-  if (!parsedData || !parsedData.data) throw new Error("Invalid backup format");
-  
-  await db.transaction('rw', db.userAnime, db.watchHistory, async () => {
-    if (parsedData.data.userAnime) {
-      await db.userAnime.bulkPut(parsedData.data.userAnime);
-    }
-    if (parsedData.data.watchHistory) {
-      await db.watchHistory.bulkPut(parsedData.data.watchHistory);
-    }
-  });
-}
-
-/**
- * Clears all user data from the local database
- */
-export async function clearAllUserData() {
-  await db.transaction('rw', db.userAnime, db.watchHistory, db.animeMetadata, db.franchises, async () => {
-    await db.userAnime.clear();
-    await db.watchHistory.clear();
-    await db.animeMetadata.clear();
-    await db.franchises.clear();
-  });
-}
-
-/**
- * Removes only anime that were added without metadata (the "Unknown" ones)
- */
-export async function removeUnknownAnime() {
-  const userList = await db.userAnime.toArray();
-  const metadataMap = new Map();
-  const malIds = userList.map(u => u.malId);
-  
-  const metadataList = await db.animeMetadata.where('malId').anyOf(malIds).toArray();
-  metadataList.forEach(m => metadataMap.set(m.malId, m));
-  
-  const idsToDelete = [];
-  for (const u of userList) {
-    if (!metadataMap.has(u.malId)) {
-      idsToDelete.push(u.malId);
-    }
-  }
-  
-  if (idsToDelete.length > 0) {
-    await db.userAnime.bulkDelete(idsToDelete);
-  }
-  return idsToDelete.length;
-}
+export async function importUserData(parsedData) {}

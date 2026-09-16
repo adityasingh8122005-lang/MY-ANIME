@@ -1,75 +1,101 @@
-import { db } from './db.js';
+import { supabase } from './supabase.js';
+import { getAllUserAnime } from './userService.js';
 
 export async function addFranchiseToDb(franchiseData, initialStatus = "Plan to Watch") {
   const { franchiseId, franchiseName, poster, seasons } = franchiseData;
+  const { data: { session } } = await supabase.auth.getSession();
+  const userId = session?.user?.id;
+  if (!userId) return;
   
-  await db.franchises.put({
-    franchiseId,
-    franchiseName,
-    poster,
+  // Upsert the franchise info (global)
+  await supabase.from('franchises').upsert({
+    franchise_id: franchiseId,
+    franchise_name: franchiseName,
+    poster: poster,
     seasons: seasons.map(s => ({ malId: s.malId, title: s.title, canonEpisodes: s.canonEpisodes, format: s.format }))
-  });
+  }, { onConflict: 'franchise_id' });
 
+  // Update user collection and global metadata
   for (const season of seasons) {
-    // Add metadata
-    await db.animeMetadata.put({
-      malId: season.malId,
+    await supabase.from('anime_metadata').upsert({
+      mal_id: season.malId,
       title: season.title,
-      englishTitle: season.title,
+      english_title: season.title,
       poster: season.poster || poster,
       episodes: season.episodes,
-      status: "Unknown" // Since we fetch from AniList, we might not have full Jikan status here
-    });
+      status: "Unknown"
+    }, { onConflict: 'mal_id' });
 
     // Add to user collection
-    const existing = await db.userAnime.get(season.malId);
+    const { data: existing } = await supabase.from('user_anime').select('*').eq('user_id', userId).eq('mal_id', season.malId).maybeSingle();
+    
     if (!existing) {
-      await db.userAnime.put({
-        malId: season.malId,
-        personalStatus: initialStatus,
-        episodesWatched: 0,
-        personalRating: null,
-        updatedAt: new Date().toISOString(),
-        franchiseId
+      await supabase.from('user_anime').insert({
+        user_id: userId,
+        mal_id: season.malId,
+        personal_status: initialStatus,
+        episodes_watched: 0,
+        franchise_id: franchiseId,
+        added_at: new Date().toISOString(),
+        updated_at: new Date().toISOString()
       });
-    } else if (!existing.franchiseId) {
-      await db.userAnime.update(season.malId, { franchiseId });
+    } else if (!existing.franchise_id) {
+      await supabase.from('user_anime').update({ franchise_id: franchiseId }).eq('user_id', userId).eq('mal_id', season.malId);
     }
   }
 }
 
 export async function getFranchises() {
-  return await db.franchises.toArray();
+  const { data, error } = await supabase.from('franchises').select('*');
+  if (error) return [];
+  return data.map(f => ({
+    franchiseId: f.franchise_id,
+    franchiseName: f.franchise_name,
+    poster: f.poster,
+    seasons: f.seasons
+  }));
 }
 
 export async function getFranchiseWithProgress(franchiseId) {
-  const franchise = await db.franchises.get(franchiseId);
+  const { data: franchise } = await supabase.from('franchises').select('*').eq('franchise_id', franchiseId).single();
   if (!franchise) return null;
 
-  const userAnimes = await db.userAnime.where({ franchiseId }).toArray();
+  const fObj = {
+    franchiseId: franchise.franchise_id,
+    franchiseName: franchise.franchise_name,
+    poster: franchise.poster,
+    seasons: franchise.seasons
+  };
+
+  const { data: { session } } = await supabase.auth.getSession();
+  const userId = session?.user?.id;
+  let userAnimes = [];
+  if (userId) {
+    const { data } = await supabase.from('user_anime').select('*').eq('user_id', userId).eq('franchise_id', franchiseId);
+    if (data) userAnimes = data;
+  }
+
   const progressMap = new Map();
-  userAnimes.forEach(ua => progressMap.set(ua.malId, ua));
+  userAnimes.forEach(ua => progressMap.set(ua.mal_id, ua));
 
   let totalCanon = 0;
   let totalWatched = 0;
 
-  const enrichedSeasons = franchise.seasons.map(s => {
-    const user = progressMap.get(s.malId) || { episodesWatched: 0 };
-    // Cap watched to canon episodes if they watched filler? 
-    // Actually, episodesWatched tracks their absolute watched count for that season.
-    const watched = Math.min(user.episodesWatched || 0, s.canonEpisodes || s.episodes || 0);
+  const enrichedSeasons = fObj.seasons.map(s => {
+    const user = progressMap.get(s.malId) || { episodes_watched: 0 };
+    const watched = Math.min(user.episodes_watched || 0, s.canonEpisodes || s.episodes || 0);
     
     totalCanon += (s.canonEpisodes || s.episodes || 0);
     totalWatched += watched;
 
     return {
       ...s,
-      episodesWatched: user.episodesWatched || 0
+      episodesWatched: user.episodes_watched || 0
     };
   });
 
   return {
-    ...franchise,
+    ...fObj,
     totalCanon,
     totalWatched,
     seasons: enrichedSeasons
@@ -77,16 +103,14 @@ export async function getFranchiseWithProgress(franchiseId) {
 }
 
 export async function getGroupedCollection() {
-  const userAnimes = await db.userAnime.toArray();
-  const allFranchises = await db.franchises.toArray();
-  const metadataMap = new Map();
-  const metadataList = await db.animeMetadata.toArray();
-  metadataList.forEach(m => metadataMap.set(m.malId, m));
+  const userAnimes = await getAllUserAnime(true); // this already camelCases and includes metadata
+  if (!userAnimes || userAnimes.length === 0) return [];
 
+  const allFranchises = await getFranchises();
   const groups = new Map();
 
   for (const ua of userAnimes) {
-    const meta = metadataMap.get(ua.malId);
+    const meta = ua.metadata;
     if (ua.franchiseId) {
       if (!groups.has(ua.franchiseId)) {
         const f = allFranchises.find(x => x.franchiseId === ua.franchiseId);
@@ -102,7 +126,6 @@ export async function getGroupedCollection() {
         });
       }
       const g = groups.get(ua.franchiseId);
-      // find season canon eps
       const f = allFranchises.find(x => x.franchiseId === ua.franchiseId);
       const sData = f?.seasons?.find(s => s.malId === ua.malId);
       
@@ -117,7 +140,6 @@ export async function getGroupedCollection() {
         g.updatedAt = ua.updatedAt;
       }
     } else {
-      // Legacy item
       groups.set(`legacy_${ua.malId}`, {
         isFranchise: false,
         malId: ua.malId,

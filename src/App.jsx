@@ -13,6 +13,21 @@ import clsx from 'clsx';
 import { useEffect } from 'react';
 import { db } from './services/db.js';
 
+
+const ProtectedRoute = ({ children }) => {
+  const { session, loading } = useAuth();
+  
+  useEffect(() => {
+    if (session?.user?.id) {
+      migrateLocalToCloud(session.user.id);
+    }
+  }, [session]);
+
+  if (loading) return <div className="min-h-screen flex items-center justify-center bg-dark-base"><div className="animate-spin w-8 h-8 border-4 border-accent border-t-transparent rounded-full" /></div>;
+  if (!session) return <Navigate to="/auth" />;
+  return children;
+};
+
 function NavItem({ to, icon: Icon, label }) {
   return (
     <NavLink 
@@ -58,6 +73,7 @@ function App() {
   }, []);
 
   return (
+    <AuthProvider>
     <Router>
       <div className="min-h-screen flex flex-col">
         <header className="bg-dark-surface border-b border-zinc-800 sticky top-0 z-50">
@@ -73,6 +89,9 @@ function App() {
               <NavItem to="/surprise-me" icon={Dices} label="Surprise Me" />
               <NavItem to="/settings" icon={SettingsIcon} label="Settings" />
               <Notifications />
+              <button onClick={() => supabase.auth.signOut()} className="p-2 text-zinc-400 hover:text-red-400 transition-colors" title="Sign Out">
+                <LogOut size={20} />
+              </button>
             </nav>
           </div>
         </header>
@@ -91,6 +110,7 @@ function App() {
         </main>
       </div>
     </Router>
+    </AuthProvider>
   );
 }
 
