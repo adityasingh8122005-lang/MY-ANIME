@@ -10,6 +10,7 @@ export default function AuthPage() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
   const [success, setSuccess] = useState(null);
+  const [showVerificationPopup, setShowVerificationPopup] = useState(false);
   
   const navigate = useNavigate();
   const location = useLocation();
@@ -40,9 +41,7 @@ export default function AuthPage() {
         const { error } = await supabase.auth.signUp({ email, password });
         if (error) throw error;
         
-        // Show inline success message instead of a window popup
-        setSuccess('Account created successfully! Please check your email inbox to verify your account before logging in.');
-        setIsSignUp(false);
+        setShowVerificationPopup(true);
         setPassword('');
       } else {
         const { error } = await supabase.auth.signInWithPassword({ email, password });
@@ -148,6 +147,33 @@ export default function AuthPage() {
           {isSignUp ? 'Sign In' : 'Sign Up'}
         </button>
       </div>
+
+      {/* Verification Popup Modal */}
+      {showVerificationPopup && (
+        <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm">
+          <div className="bg-dark-elevated border border-zinc-700 rounded-lg max-w-sm w-full p-6 shadow-2xl animate-in fade-in zoom-in duration-200 text-center">
+            <div className="w-16 h-16 bg-green-500/20 text-green-500 rounded-full flex items-center justify-center mx-auto mb-4 border border-green-500/30">
+              <Mail size={32} />
+            </div>
+            <h2 className="text-xl font-bold text-white mb-2">Check Your Email</h2>
+            <p className="text-sm text-zinc-400 mb-6">
+              We've sent a verification link to <strong>{email}</strong>. 
+              Please check your inbox (and spam folder) and click the link to verify your account before logging in.
+            </p>
+            <button 
+              onClick={() => {
+                setShowVerificationPopup(false);
+                setIsSignUp(false);
+                setSuccess('Please verify your email before logging in.');
+              }}
+              className="w-full bg-accent hover:bg-accent-hover text-white py-2.5 rounded-md font-bold transition-colors"
+            >
+              Got it!
+            </button>
+          </div>
+        </div>
+      )}
+
     </div>
   );
 }
