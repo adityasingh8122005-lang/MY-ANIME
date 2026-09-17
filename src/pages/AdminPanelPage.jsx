@@ -50,7 +50,7 @@ export default function AdminPanelPage() {
         const statsMap = {};
         allAnime.forEach(row => {
           if (!statsMap[row.mal_id]) {
-            statsMap[row.mal_id] = { mal_id: row.mal_id, total: 0, watching: 0, completed: 0, plan: 0, hold: 0, dropped: 0 };
+            statsMap[row.mal_id] = { mal_id: row.mal_id, total: 0, watching: 0, completed: 0, plan: 0, hold: 0, dropped: 0, title: 'Loading...' };
           }
           statsMap[row.mal_id].total++;
           
@@ -61,8 +61,48 @@ export default function AdminPanelPage() {
           else if (row.personal_status === 'Dropped') statsMap[row.mal_id].dropped++;
         });
         
-        // Convert to array and sort by most popular
-        const statsArr = Object.values(statsMap).sort((a, b) => b.total - a.total).slice(0, 50); // top 50
+        const statsArr = Object.values(statsMap).sort((a, b) => b.total - a.total).slice(0, 50);
+        
+        // Fetch titles from AniList
+        if (statsArr.length > 0) {
+          const malIds = statsArr.map(s => s.mal_id);
+          try {
+            const query = `
+              query ($idMal_in: [Int]) {
+                Page(page: 1, perPage: 50) {
+                  media(idMal_in: $idMal_in, type: ANIME) {
+                    idMal
+                    title {
+                      english
+                      romaji
+                    }
+                  }
+                }
+              }
+            `;
+            const response = await fetch('https://graphql.anilist.co', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({ query, variables: { idMal_in: malIds } })
+            });
+            const json = await response.json();
+            const mediaList = json.data?.Page?.media || [];
+            
+            // Map titles back to statsArr
+            statsArr.forEach(stat => {
+              const media = mediaList.find(m => m.idMal === stat.mal_id);
+              if (media && media.title) {
+                stat.title = media.title.english || media.title.romaji || 'Unknown Title';
+              } else {
+                stat.title = 'Unknown Title (ID: ' + stat.mal_id + ')';
+              }
+            });
+          } catch(e) {
+            console.error('Failed to fetch anime titles:', e);
+            statsArr.forEach(s => s.title = 'Unknown Title');
+          }
+        }
+        
         setAnimeStats(statsArr);
       }
 
@@ -197,7 +237,7 @@ export default function AdminPanelPage() {
                 <table className="w-full text-left text-sm whitespace-nowrap">
                   <thead className="bg-zinc-950 border-b border-zinc-800 text-zinc-400">
                     <tr>
-                      <th className="px-6 py-4 font-semibold">Anime ID</th>
+                      <th className="px-6 py-4 font-semibold">Anime</th>
                       <th className="px-6 py-4 font-semibold text-center text-blue-400">Watching</th>
                       <th className="px-6 py-4 font-semibold text-center text-green-400">Completed</th>
                       <th className="px-6 py-4 font-semibold text-center text-yellow-400">Plan To Watch</th>
@@ -208,7 +248,9 @@ export default function AdminPanelPage() {
                   <tbody className="divide-y divide-zinc-800">
                     {animeStats.map(stat => (
                       <tr key={stat.mal_id} className="hover:bg-zinc-800/50 transition-colors">
-                        <td className="px-6 py-4 font-medium text-white">ID: {stat.mal_id}</td>
+                        <td className="px-6 py-4 font-medium text-white max-w-xs truncate" title={stat.title}>
+                          <div className="line-clamp-2">{stat.title}</div>
+                        </td>
                         <td className="px-6 py-4 text-center text-blue-400">{stat.watching}</td>
                         <td className="px-6 py-4 text-center text-green-400">{stat.completed}</td>
                         <td className="px-6 py-4 text-center text-yellow-400">{stat.plan}</td>

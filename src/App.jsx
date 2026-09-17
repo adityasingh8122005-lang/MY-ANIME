@@ -30,7 +30,7 @@ import { db } from './services/db.js';
 
 
 const HeaderProfile = () => {
-  const { session, profile } = useAuth();
+  const { session, profile, isAdmin, adminMode, toggleAdminMode } = useAuth();
   const { openLoginModal } = useLoginModal();
   const [isOpen, setIsOpen] = useState(false);
   const dropdownRef = useRef(null);
@@ -43,8 +43,10 @@ const HeaderProfile = () => {
     }
     document.addEventListener("mousedown", handleClickOutside);
     document.addEventListener("touchstart", handleClickOutside);
-    return () => document.removeEventListener("mousedown", handleClickOutside);
-    document.removeEventListener("touchstart", handleClickOutside);
+    return () => {
+      document.removeEventListener("mousedown", handleClickOutside);
+      document.removeEventListener("touchstart", handleClickOutside);
+    };
   }, []);
   
   if (!session) {
@@ -92,14 +94,17 @@ const HeaderProfile = () => {
           >
             <SettingsIcon size={16} /> Settings
           </Link>
-          {(session?.user?.email === 'iamaditya8090@gmail.com' || session?.user?.email === 'adityasingh8122005@gmail.com') && (
-            <Link 
-              to="/admin"
-              onClick={() => setIsOpen(false)}
-              className="flex items-center gap-3 px-4 py-2 text-sm text-accent hover:bg-zinc-800 hover:text-accent transition-colors"
+          {isAdmin && (
+            <button 
+              onClick={(e) => {
+                e.stopPropagation();
+                setIsOpen(false);
+                toggleAdminMode();
+              }}
+              className="w-full flex items-center gap-3 px-4 py-2 text-sm text-red-400 hover:bg-zinc-800 hover:text-red-300 transition-colors"
             >
-              <ShieldAlert size={16} /> Admin Panel
-            </Link>
+              <ShieldAlert size={16} /> {adminMode ? 'Exit Admin Mode' : 'Switch to Admin'}
+            </button>
           )}
 
           <button 
@@ -227,7 +232,7 @@ function AppContent() {
             <Route path="/anime/:id" element={<AnimeDetailsPage />} />
             <Route path="/franchise/:id" element={<FranchiseDetailsPage />} />
             <Route path="/profile/:username" element={<ProfilePage />} />
-            <Route path="/admin" element={<ProtectedRoute><AdminPanelPage /></ProtectedRoute>} />
+            
           </Routes>
         </main>
       </div>
