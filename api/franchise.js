@@ -9,9 +9,9 @@ export default async function handler(req, res) {
   const query = `
   query ($id: Int) {
     Media(idMal: $id, type: ANIME) {
-      idMal title { english romaji } format episodes
+      idMal title { english romaji } format episodes status
       relations {
-        edges { relationType node { idMal title { english romaji } format episodes coverImage { large } } }
+        edges { relationType node { idMal title { english romaji } format episodes status coverImage { large } } }
       }
       coverImage { large }
     }
@@ -89,6 +89,7 @@ export default async function handler(req, res) {
           format: currentMedia.format,
           episodes: currentMedia.episodes || null,
           poster: currentMedia.coverImage?.large,
+          status: currentMedia.status,
           movieCanonStatus
         });
       }

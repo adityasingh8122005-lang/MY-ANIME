@@ -12,18 +12,24 @@ export async function addFranchiseToDb(franchiseData, initialStatus = "Plan to W
     franchise_id: franchiseId,
     franchise_name: franchiseName,
     poster: poster,
-    seasons: seasons.map(s => ({ malId: s.malId, title: s.title, canonEpisodes: s.canonEpisodes, format: s.format }))
+    seasons: seasons.map(s => ({ malId: s.malId, title: s.title, canonEpisodes: s.canonEpisodes, format: s.format, status: s.status }))
   }, { onConflict: 'franchise_id' });
 
   // Update user collection and global metadata
   for (const season of seasons) {
+    
+    let mappedStatus = "Unknown";
+    if (season.status === 'RELEASING' || season.status === 'Currently Airing') mappedStatus = 'Releasing';
+    else if (season.status === 'FINISHED' || season.status === 'Finished Airing') mappedStatus = 'Finished Airing';
+    else if (season.status === 'NOT_YET_RELEASED' || season.status === 'Not yet aired') mappedStatus = 'Not yet aired';
+
     await supabase.from('anime_metadata').upsert({
       mal_id: season.malId,
       title: season.title,
       english_title: season.title,
       poster: season.poster || poster,
       episodes: season.episodes,
-      status: "Unknown"
+      status: mappedStatus
     }, { onConflict: 'mal_id' });
 
     // Add to user collection
@@ -179,16 +185,83 @@ export async function getGroupedCollection(showNonCanonMovies = false) {
       }
       
       let isOngoing = false;
-      for (const season of g.seasons) {
-        if (season.metadata && (season.metadata.status === 'Releasing' || season.metadata.status === 'Not yet aired')) {
-          isOngoing = true;
-          break;
+      if (f && f.seasons) {
+        for (const season of f.seasons) {
+          if (season.status === 'RELEASING' || season.status === 'NOT_YET_RELEASED' || season.status === 'Currently Airing' || season.status === 'Releasing' || season.status === 'Not yet aired') {
+            isOngoing = true;
+            break;
+          }
         }
       }
+      
+      // Fallback to checking the user's added seasons if franchise seasons lack status
+      if (!isOngoing) {
+        for (const season of g.seasons) {
+          if (season.metadata && (season.metadata.status === 'Releasing' || season.metadata.status === 'Not yet aired' || season.metadata.status === 'RELEASING' || season.metadata.status === 'Currently Airing')) {
+            isOngoing = true;
+            break;
+          }
+        }
+      }
+      
       g.airStatus = isOngoing ? 'Ongoing' : 'Finished';
     } else {
-      g.airStatus = (g.metadata && (g.metadata.status === 'Releasing' || g.metadata.status === 'Not yet aired')) ? 'Ongoing' : 'Finished';
+      g.airStatus = (g.metadata && (g.metadata.status === 'Releasing' || g.metadata.status === 'Not yet aired' || g.metadata.status === 'RELEASING' || g.metadata.status === 'Currently Airing')) ? 'Ongoing' : 'Finished';
     }
   }
   return result;
+}
+
+
+export async function autoHealUnknownMetadata() {
+  const { data: { session } } = await supabase.auth.getSession();
+  if (!session) return;
+
+  const { data: userAnimes } = await supabase.from('user_anime').select('mal_id').eq('user_id', session.user.id);
+  if (!userAnimes) return;
+
+  const malIds = userAnimes.map(u => u.mal_id);
+  if (malIds.length === 0) return;
+  const { data: metadataList } = await supabase.from('anime_metadata').select('mal_id, status').in('mal_id', malIds).eq('status', 'Unknown');
+  
+  if (!metadataList || metadataList.length === 0) return;
+
+  // We have some unknown metadata. Let's fix them.
+  console.log('Auto-healing metadata for', metadataList.length, 'items');
+  const idsToFix = metadataList.map(m => m.mal_id);
+  
+  // Fetch from AniList in batches of 50
+  for (let i = 0; i < idsToFix.length; i += 50) {
+    const batch = idsToFix.slice(i, i + 50);
+    const query = `
+      query ($idIn: [Int]) {
+        Page {
+          media(idMal_in: $idIn, type: ANIME) {
+            idMal
+            status
+          }
+        }
+      }
+    `;
+    
+    try {
+      const response = await fetch('https://graphql.anilist.co', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ query, variables: { idIn: batch } })
+      });
+      const json = await response.json();
+      const mediaList = json.data?.Page?.media || [];
+      
+      for (const media of mediaList) {
+        let mappedStatus = "Finished Airing";
+        if (media.status === 'RELEASING') mappedStatus = 'Releasing';
+        else if (media.status === 'NOT_YET_RELEASED') mappedStatus = 'Not yet aired';
+        
+        await supabase.from('anime_metadata').update({ status: mappedStatus }).eq('mal_id', media.idMal);
+      }
+    } catch (e) {
+      console.error('Auto-heal failed', e);
+    }
+  }
 }
