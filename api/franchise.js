@@ -38,8 +38,11 @@ export default async function handler(req, res) {
 
     
     const MOVIE_CANON_DB = {
-      // CANON
+            // CANON
       40456: 'CANON', // Demon Slayer: Mugen Train
+      59192: 'CANON', // Infinity Castle Part 1
+      62546: 'CANON', // Infinity Castle Part 2
+      62547: 'CANON', // Infinity Castle Part 3 (guess)
       52742: 'CANON', // Haikyuu Dumpster Battle
       16870: 'CANON', // The Last: Naruto
       48561: 'CANON', // JJK 0

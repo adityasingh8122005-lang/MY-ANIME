@@ -1,6 +1,10 @@
 import { supabase } from './supabase.js';
 import { getAllUserAnime } from './userService.js';
 
+
+// Hardcoded fallback for existing database entries that lack the field
+const KNOWN_CANON_MOVIES = [40456, 52742, 16870, 48561, 36946, 51552, 59192, 62546, 62547];
+
 export async function addFranchiseToDb(franchiseData, initialStatus = "Plan to Watch") {
   const { franchiseId, franchiseName, poster, seasons } = franchiseData;
   const { data: { session } } = await supabase.auth.getSession();
@@ -12,7 +16,7 @@ export async function addFranchiseToDb(franchiseData, initialStatus = "Plan to W
     franchise_id: franchiseId,
     franchise_name: franchiseName,
     poster: poster,
-    seasons: seasons.map(s => ({ malId: s.malId, title: s.title, canonEpisodes: s.canonEpisodes, format: s.format, status: s.status }))
+    seasons: seasons.map(s => ({ malId: s.malId, title: s.title, canonEpisodes: s.canonEpisodes, format: s.format, status: s.status, movieCanonStatus: s.movieCanonStatus }))
   }, { onConflict: 'franchise_id' });
 
   // Update user collection and global metadata
@@ -90,7 +94,9 @@ export async function getFranchiseWithProgress(franchiseId) {
   const filteredSeasons = fObj.seasons.filter(s => s.format !== 'SPECIAL');
   const enrichedSeasons = filteredSeasons.map(s => {
     const user = progressMap.get(s.malId) || { episodes_watched: 0 };
-    const isNonCanonMovie = s.format === "MOVIE" && s.movieCanonStatus !== "CANON";
+    let canonStatus = s.movieCanonStatus;
+    if (!canonStatus && s.format === "MOVIE" && KNOWN_CANON_MOVIES.includes(s.malId)) canonStatus = "CANON";
+    const isNonCanonMovie = s.format === "MOVIE" && canonStatus !== "CANON";
     const maxCanon = isNonCanonMovie ? 0 : (s.canonEpisodes || s.episodes || 0);
     const watched = maxCanon > 0 ? Math.min(user.episodes_watched || 0, maxCanon) : (user.episodes_watched || 0);
     
@@ -99,6 +105,7 @@ export async function getFranchiseWithProgress(franchiseId) {
 
     return {
       ...s,
+      movieCanonStatus: canonStatus,
       episodesWatched: watched
     };
   });
@@ -141,7 +148,10 @@ export async function getGroupedCollection(showNonCanonMovies = false) {
       // Skip SPECIALs entirely
       if (sData?.format === 'SPECIAL' || meta?.format === 'SPECIAL') continue;
       
-      const isNonCanonMovie = (sData?.format === "MOVIE" || meta?.format === "MOVIE") && sData?.movieCanonStatus !== "CANON";
+      const isMovie = sData?.format === "MOVIE" || meta?.format === "MOVIE";
+      let canonStatus = sData?.movieCanonStatus;
+      if (!canonStatus && isMovie && KNOWN_CANON_MOVIES.includes(ua.malId)) canonStatus = "CANON";
+      const isNonCanonMovie = isMovie && canonStatus !== "CANON";
       if (isNonCanonMovie && !showNonCanonMovies) continue;
 
       const canon = isNonCanonMovie ? 0 : (sData?.canonEpisodes || meta?.episodes || 0);
