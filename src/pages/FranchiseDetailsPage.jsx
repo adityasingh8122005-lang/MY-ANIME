@@ -10,7 +10,7 @@ import { Loader2, ArrowLeft, Folder, Tv, Film, CheckCircle } from 'lucide-react'
 
 export default function FranchiseDetailsPage() {
   const { session } = useAuth();
-  const [showNonCanon, setShowNonCanon] = useState(false);
+  const [showMovies, setShowMovies] = useState(false);
   const { openLoginModal } = useLoginModal();
   const { id } = useParams();
   const navigate = useNavigate();
@@ -110,25 +110,37 @@ export default function FranchiseDetailsPage() {
             <div className="flex items-center justify-between mb-4">
         <h2 className="text-xl font-bold text-white">Franchise Contents</h2>
         
-        {franchise.seasons.some(s => s.format === 'MOVIE' && s.movieCanonStatus !== 'CANON') && (
+        {franchise.seasons.some(s => s.format === 'MOVIE') && (
           <label className="flex items-center gap-2 cursor-pointer group bg-dark-surface px-3 py-1.5 rounded-full border border-zinc-800 hover:border-zinc-700 transition-colors">
             <input 
               type="checkbox" 
-              checked={showNonCanon}
-              onChange={(e) => setShowNonCanon(e.target.checked)}
+              checked={showMovies}
+              onChange={(e) => setShowMovies(e.target.checked)}
               className="accent-accent w-3.5 h-3.5"
             />
-            <span className="text-xs font-medium text-zinc-400 group-hover:text-white transition-colors">Show Filler Movies</span>
+            <span className="text-xs font-medium text-zinc-400 group-hover:text-white transition-colors">Show Movies</span>
           </label>
         )}
       </div>
       <div className="flex flex-col gap-3">
         {franchise.seasons.filter(season => {
-          if (season.format === 'MOVIE' && season.movieCanonStatus !== 'CANON') {
-            return showNonCanon;
+          if (season.format === 'MOVIE') {
+            return showMovies;
           }
           return true;
-        }).map(season => (
+        }).map(season => {
+          let dateStr = null;
+          if (season.startDate?.year) {
+            dateStr = `${season.startDate.year}`;
+            if (season.startDate.month) {
+              const d = new Date(season.startDate.year, season.startDate.month - 1, season.startDate.day || 1);
+              dateStr = d.toLocaleDateString('en-US', { year: 'numeric', month: 'short' });
+              if (season.startDate.day) {
+                dateStr = d.toLocaleDateString('en-US', { year: 'numeric', month: 'short', day: 'numeric' });
+              }
+            }
+          }
+          return (
           <Link 
             key={season.malId} 
             to={`/anime/${season.malId}`}
@@ -139,6 +151,12 @@ export default function FranchiseDetailsPage() {
               <h3 className="font-bold text-zinc-200 group-hover:text-white">{season.title}</h3>
               <div className="text-xs text-zinc-500 flex items-center gap-2 flex-wrap">
                 <span>{season.format}</span>
+                {dateStr && (
+                  <>
+                    <span>•</span>
+                    <span>{dateStr}</span>
+                  </>
+                )}
                 {season.format === 'MOVIE' && season.movieCanonStatus !== 'CANON' && (
                   <>
                     <span>•</span>
@@ -153,7 +171,7 @@ export default function FranchiseDetailsPage() {
               {season.episodesWatched} / {season.canonEpisodes}
             </div>
           </Link>
-        ))}
+        )})}
       </div>
     </div>
   );

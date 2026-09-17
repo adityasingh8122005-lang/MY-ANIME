@@ -16,7 +16,7 @@ export async function addFranchiseToDb(franchiseData, initialStatus = "Plan to W
     franchise_id: franchiseId,
     franchise_name: franchiseName,
     poster: poster,
-    seasons: seasons.map(s => ({ malId: s.malId, title: s.title, canonEpisodes: s.canonEpisodes, format: s.format, status: s.status, movieCanonStatus: s.movieCanonStatus }))
+    seasons: seasons.map(s => ({ malId: s.malId, title: s.title, canonEpisodes: s.canonEpisodes, format: s.format, status: s.status, movieCanonStatus: s.movieCanonStatus, startDate: s.startDate }))
   }, { onConflict: 'franchise_id' });
 
   // Update user collection and global metadata
@@ -91,7 +91,7 @@ export async function getFranchiseWithProgress(franchiseId) {
   let totalCanon = 0;
   let totalWatched = 0;
 
-  const filteredSeasons = fObj.seasons.filter(s => s.format !== 'SPECIAL');
+  const filteredSeasons = fObj.seasons.filter(s => s.format !== 'SPECIAL' && s.format !== 'OVA');
   const enrichedSeasons = filteredSeasons.map(s => {
     const user = progressMap.get(s.malId) || { episodes_watched: 0 };
     let canonStatus = s.movieCanonStatus;
@@ -273,6 +273,77 @@ export async function autoHealUnknownMetadata() {
       }
     } catch (e) {
       console.error('Auto-heal failed', e);
+    }
+  }
+}
+
+export async function autoHealFranchiseDates() {
+  const { data: franchises } = await supabase.from('franchises').select('*');
+  if (!franchises) return;
+  
+  const malIdsToFetch = new Set();
+  const franchisesToUpdate = [];
+
+  for (const f of franchises) {
+    if (!f.seasons) continue;
+    let needsHeal = false;
+    for (const s of f.seasons) {
+      if (s.startDate === undefined) {
+        needsHeal = true;
+        malIdsToFetch.add(s.malId);
+      }
+    }
+    if (needsHeal) franchisesToUpdate.push(f);
+  }
+
+  if (malIdsToFetch.size === 0) return;
+  
+  const idsArray = Array.from(malIdsToFetch);
+  const dateMap = new Map();
+  
+  // Batch fetch from AniList
+  for (let i = 0; i < idsArray.length; i += 50) {
+    const batch = idsArray.slice(i, i + 50);
+    const query = `
+      query ($idIn: [Int]) {
+        Page {
+          media(idMal_in: $idIn, type: ANIME) {
+            idMal
+            startDate { year month day }
+          }
+        }
+      }
+    `;
+    try {
+      const response = await fetch('https://graphql.anilist.co', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ query, variables: { idIn: batch } })
+      });
+      const json = await response.json();
+      const mediaList = json.data?.Page?.media || [];
+      for (const media of mediaList) {
+        dateMap.set(media.idMal, media.startDate);
+      }
+    } catch (e) {
+      console.error('Auto-heal dates failed', e);
+      return;
+    }
+  }
+
+  // Update franchises
+  for (const f of franchisesToUpdate) {
+    let updated = false;
+    const newSeasons = f.seasons.map(s => {
+      if (s.startDate === undefined && dateMap.has(s.malId)) {
+        updated = true;
+        return { ...s, startDate: dateMap.get(s.malId) };
+      }
+      return s;
+    });
+    
+    if (updated) {
+      await supabase.from('franchises').update({ seasons: newSeasons }).eq('franchise_id', f.franchise_id);
     }
   }
 }

@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
-import { getGroupedCollection, autoHealUnknownMetadata } from '../services/franchiseService';
+import { getGroupedCollection, autoHealUnknownMetadata, autoHealFranchiseDates } from '../services/franchiseService';
 import { Loader2, Library, Folder, Edit2, Check, ArrowUp, ArrowDown, LayoutGrid, Menu } from 'lucide-react';
 import clsx from 'clsx';
 
@@ -30,6 +30,7 @@ export default function MyAnimePage() {
         const data = await getGroupedCollection(showNonCanon);
         // Silently heal in background
         autoHealUnknownMetadata();
+        autoHealFranchiseDates();
         setCollection(data);
       } catch (err) {
         console.error(err);
