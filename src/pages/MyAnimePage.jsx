@@ -137,7 +137,7 @@ export default function MyAnimePage() {
         ))}
       </div>
 
-      {activeTab === 'Completed' && (
+      {(activeTab === 'Completed' || activeTab === 'Plan to Watch') && (
         <div className="flex gap-2 mb-6 bg-dark-surface p-1 rounded-lg w-fit border border-zinc-800">
           {['All', 'Finished', 'Ongoing'].map(filter => (
             <button
@@ -176,8 +176,8 @@ export default function MyAnimePage() {
                     )}
                     
                     {isFranchise ? (
-                      <div className="absolute top-2 right-2 bg-accent/90 backdrop-blur-sm text-[10px] font-bold px-2 py-1 rounded text-white shadow flex items-center gap-1 z-10">
-                        <Folder size={10} /> FRANCHISE
+                      <div className="absolute top-2 right-2 bg-accent/90 backdrop-blur-sm text-[10px] font-bold px-2 py-1 rounded text-white shadow flex items-center justify-center z-10">
+                        <Folder size={14} />
                       </div>
                     ) : (
                       <div className="absolute top-2 right-2 bg-dark-base/90 backdrop-blur-sm text-[10px] font-bold px-2 py-1 rounded text-white border border-zinc-700 z-10">
@@ -200,7 +200,7 @@ export default function MyAnimePage() {
                     </h3>
                     <p className="text-[10px] text-zinc-500 mt-auto pt-2 flex justify-between items-center">
                       <span>{item.totalWatched ?? item.episodesWatched ?? 0} / {item.totalCanon ?? item.canonEpisodes ?? '?'} Eps</span>
-                      {activeTab === 'Completed' && item.airStatus && (
+                      {(activeTab === 'Completed' || activeTab === 'Plan to Watch') && item.airStatus && (
                         <span className={clsx(item.airStatus === 'Ongoing' ? 'text-green-500' : 'text-zinc-600')}>
                           {item.airStatus}
                         </span>

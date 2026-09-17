@@ -180,7 +180,7 @@ export async function getGroupedCollection(showNonCanonMovies = false) {
       
       let isOngoing = false;
       for (const season of g.seasons) {
-        if (season.metadata && (season.metadata.status === 'Releasing' || season.metadata.status === 'Not yet aired' || season.metadata.status === 'Unknown')) {
+        if (season.metadata && (season.metadata.status === 'Releasing' || season.metadata.status === 'Not yet aired')) {
           isOngoing = true;
           break;
         }
