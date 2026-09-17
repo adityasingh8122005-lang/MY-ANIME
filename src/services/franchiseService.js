@@ -185,6 +185,7 @@ export async function getGroupedCollection(showNonCanonMovies = false) {
       }
       
       let isOngoing = false;
+      const f = allFranchises.find(x => x.franchiseId === g.franchiseId);
       if (f && f.seasons) {
         for (const season of f.seasons) {
           if (season.status === 'RELEASING' || season.status === 'NOT_YET_RELEASED' || season.status === 'Currently Airing' || season.status === 'Releasing' || season.status === 'Not yet aired') {

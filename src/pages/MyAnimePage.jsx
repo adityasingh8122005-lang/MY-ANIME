@@ -9,6 +9,7 @@ export default function MyAnimePage() {
   const [collection, setCollection] = useState([]);
   const showNonCanon = false; // Always hide non-canon from library view by default
   const [isLoading, setIsLoading] = useState(true);
+  const [errorObj, setErrorObj] = useState(null);
   const [sortBy, setSortBy] = useState('updatedAt');
   const [activeTab, setActiveTab] = useState('All');
   const [completedFilter, setCompletedFilter] = useState('All');
@@ -25,6 +26,7 @@ export default function MyAnimePage() {
         setCollection(data);
       } catch (err) {
         console.error(err);
+        setErrorObj(err.toString() + "\n" + err.stack);
       } finally {
         setIsLoading(false);
       }
@@ -38,6 +40,7 @@ export default function MyAnimePage() {
     }
   }, [customOrder]);
 
+  if (errorObj) return <div className="text-red-500 p-8 whitespace-pre-wrap">{errorObj}</div>;
   if (isLoading) {
     return (
       <div className="flex justify-center items-center h-64">
