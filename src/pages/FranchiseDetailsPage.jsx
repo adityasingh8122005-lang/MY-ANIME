@@ -157,12 +157,7 @@ export default function FranchiseDetailsPage() {
                     <span>{dateStr}</span>
                   </>
                 )}
-                {season.format === 'MOVIE' && season.movieCanonStatus !== 'CANON' && (
-                  <>
-                    <span>•</span>
-                    <span className="text-red-400 font-bold uppercase tracking-wider text-[10px] bg-red-900/20 px-1.5 py-0.5 rounded">NON-CANON / FILLER</span>
-                  </>
-                )}
+                
                 <span>•</span>
                 <span>{season.format === 'MOVIE' && season.movieCanonStatus !== 'CANON' ? 0 : (season.canonEpisodes || season.episodes || 1)} Canon Episodes</span>
               </div>
