@@ -81,16 +81,18 @@ export async function getFranchiseWithProgress(franchiseId) {
   let totalCanon = 0;
   let totalWatched = 0;
 
-  const enrichedSeasons = fObj.seasons.map(s => {
+  const filteredSeasons = fObj.seasons.filter(s => s.format !== 'SPECIAL');
+  const enrichedSeasons = filteredSeasons.map(s => {
     const user = progressMap.get(s.malId) || { episodes_watched: 0 };
-    const watched = Math.min(user.episodes_watched || 0, s.canonEpisodes || s.episodes || 0);
+    const maxCanon = s.canonEpisodes || s.episodes || 0;
+    const watched = maxCanon > 0 ? Math.min(user.episodes_watched || 0, maxCanon) : (user.episodes_watched || 0);
     
-    totalCanon += (s.canonEpisodes || s.episodes || 0);
+    totalCanon += maxCanon;
     totalWatched += watched;
 
     return {
       ...s,
-      episodesWatched: user.episodes_watched || 0
+      episodesWatched: watched
     };
   });
 
@@ -129,23 +131,27 @@ export async function getGroupedCollection() {
       const f = allFranchises.find(x => x.franchiseId === ua.franchiseId);
       const sData = f?.seasons?.find(s => s.malId === ua.malId);
       
+      // Skip SPECIALs entirely
+      if (sData?.format === 'SPECIAL' || meta?.format === 'SPECIAL') continue;
+
       const canon = sData?.canonEpisodes || meta?.episodes || 0;
-      const watched = Math.min(ua.episodesWatched || 0, canon);
+      const watched = canon > 0 ? Math.min(ua.episodesWatched || 0, canon) : (ua.episodesWatched || 0);
       
       g.totalCanon += canon;
       g.totalWatched += watched;
-      g.seasons.push({ ...ua, metadata: meta, canonEpisodes: canon });
+      g.seasons.push({ ...ua, metadata: meta, canonEpisodes: canon, episodesWatched: watched });
       
       if (new Date(ua.updatedAt) > new Date(g.updatedAt)) {
         g.updatedAt = ua.updatedAt;
       }
     } else {
+      if (meta?.format === "SPECIAL") continue;
       groups.set(`legacy_${ua.malId}`, {
         isFranchise: false,
         malId: ua.malId,
         title: meta?.title || "Unknown",
         poster: meta?.poster,
-        episodesWatched: ua.episodesWatched,
+        episodesWatched: (meta?.episodes > 0) ? Math.min(ua.episodesWatched || 0, meta.episodes) : (ua.episodesWatched || 0),
         canonEpisodes: meta?.episodes || 0,
         personalStatus: ua.personalStatus,
         personalRating: ua.personalRating,

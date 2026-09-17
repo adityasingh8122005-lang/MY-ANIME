@@ -44,7 +44,7 @@ export default async function handler(req, res) {
       const media = await fetchMedia(currentIdMal);
       if (!media) break;
       const prequel = media.relations.edges.find(e => 
-        e.relationType === 'PREQUEL' && ['TV', 'SPECIAL', 'OVA', 'MOVIE'].includes(e.node.format)
+        e.relationType === 'PREQUEL' && ['TV', 'MOVIE'].includes(e.node.format)
       );
       if (prequel && prequel.node.idMal) currentIdMal = prequel.node.idMal;
       else break;
@@ -57,7 +57,7 @@ export default async function handler(req, res) {
       if (visited.has(currentMedia.idMal)) break;
       visited.add(currentMedia.idMal);
       
-      if (['TV', 'MOVIE', 'SPECIAL', 'OVA'].includes(currentMedia.format)) {
+      if (['TV', 'MOVIE'].includes(currentMedia.format)) {
         rawSeasons.push({
           malId: currentMedia.idMal,
           title: currentMedia.title.english || currentMedia.title.romaji,
@@ -68,7 +68,7 @@ export default async function handler(req, res) {
       }
       
       const sequel = currentMedia.relations.edges.find(e => 
-        e.relationType === 'SEQUEL' && ['TV', 'MOVIE', 'SPECIAL', 'OVA'].includes(e.node.format)
+        e.relationType === 'SEQUEL' && ['TV', 'MOVIE'].includes(e.node.format)
       );
       if (sequel && sequel.node.idMal) currentMedia = await fetchMedia(sequel.node.idMal);
       else break;
