@@ -3,7 +3,7 @@ import { useState, useEffect } from 'react';
 import { useAuth } from '../contexts/AuthContext';
 import { useLoginModal } from '../contexts/LoginModalContext';
 
-import { useParams, Link } from 'react-router-dom';
+import { useParams, Link, useNavigate } from 'react-router-dom';
 import { getAnimeDetails, getAnimeEpisodes } from '../services/jikanApi';
 import { getUserAnime, updateUserAnime, removeUserAnime, addWatchHistory, getWatchHistory, updateWatchHistory, deleteWatchHistory } from '../services/userService';
 import { getEpisodeFillerData, getSingleEpisodeFillerStatus, FILLER_STATUS, getAnimeFillerStats } from '../services/fillerApi';
@@ -19,6 +19,7 @@ export default function AnimeDetailsPage() {
   const { session } = useAuth();
   const { openLoginModal } = useLoginModal();
   const { id } = useParams();
+  const navigate = useNavigate();
   const [anime, setAnime] = useState(null);
   const [userAnime, setUserAnime] = useState(null);
   const [history, setHistory] = useState([]);
@@ -213,9 +214,9 @@ export default function AnimeDetailsPage() {
     return (
       <div className="text-center py-12">
         <p className="text-red-500 mb-4">{error || 'Anime not found.'}</p>
-        <Link to="/search" className="text-accent hover:underline flex items-center justify-center gap-2">
-          <ArrowLeft size={16} /> Back to Search
-        </Link>
+        <button onClick={() => navigate(-1)} className="text-accent hover:underline flex items-center justify-center gap-2">
+          <ArrowLeft size={16} /> Back
+        </button>
       </div>
     );
   }
@@ -229,9 +230,9 @@ export default function AnimeDetailsPage() {
 
   return (
     <div className="max-w-5xl mx-auto pb-12">
-      <Link to="/search" className="inline-flex items-center gap-2 text-zinc-400 hover:text-white mb-6 transition-colors">
-        <ArrowLeft size={16} /> Back to Search
-      </Link>
+      <button onClick={() => navigate(-1)} className="inline-flex items-center gap-2 text-zinc-400 hover:text-white mb-6 transition-colors">
+        <ArrowLeft size={16} /> Back
+      </button>
 
       <div className="flex flex-col md:flex-row gap-8">
         {/* Left Column - Poster & Actions */}

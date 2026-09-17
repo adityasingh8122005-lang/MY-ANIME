@@ -3,7 +3,7 @@ import { useState, useEffect } from 'react';
 import { useAuth } from '../contexts/AuthContext';
 import { useLoginModal } from '../contexts/LoginModalContext';
 
-import { useParams, Link } from 'react-router-dom';
+import { useParams, Link, useNavigate } from 'react-router-dom';
 import { getFranchiseWithProgress } from '../services/franchiseService';
 import { updateUserAnime } from '../services/userService';
 import { Loader2, ArrowLeft, Folder, Tv, Film, CheckCircle } from 'lucide-react';
@@ -12,6 +12,7 @@ export default function FranchiseDetailsPage() {
   const { session } = useAuth();
   const { openLoginModal } = useLoginModal();
   const { id } = useParams();
+  const navigate = useNavigate();
   const [franchise, setFranchise] = useState(null);
   const [isLoading, setIsLoading] = useState(true);
   const [isCompleting, setIsCompleting] = useState(false);
@@ -61,9 +62,9 @@ export default function FranchiseDetailsPage() {
 
   return (
     <div className="max-w-4xl mx-auto pb-12">
-      <Link to="/my-anime" className="inline-flex items-center gap-2 text-zinc-400 hover:text-white mb-6 transition-colors">
-        <ArrowLeft size={16} /> Back to Collection
-      </Link>
+      <button onClick={() => navigate(-1)} className="inline-flex items-center gap-2 text-zinc-400 hover:text-white mb-6 transition-colors">
+        <ArrowLeft size={16} /> Back
+      </button>
 
       <div className="bg-dark-surface border border-zinc-800 rounded-lg p-6 mb-8 flex flex-col sm:flex-row gap-6 items-center sm:items-start">
         <img src={franchise.poster} alt={franchise.franchiseName} className="w-32 h-48 object-cover rounded shadow-lg" />
