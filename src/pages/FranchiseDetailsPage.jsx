@@ -9,8 +9,8 @@ import { updateUserAnime } from '../services/userService';
 import { Loader2, ArrowLeft, Folder, Tv, Film, CheckCircle } from 'lucide-react';
 
 export default function FranchiseDetailsPage() {
-  const { session, profile } = useAuth();
-  const showNonCanon = profile?.show_non_canon_movies === true;
+  const { session } = useAuth();
+  const [showNonCanon, setShowNonCanon] = useState(false);
   const { openLoginModal } = useLoginModal();
   const { id } = useParams();
   const navigate = useNavigate();
@@ -107,7 +107,21 @@ export default function FranchiseDetailsPage() {
         </div>
       </div>
 
-            <h2 className="text-xl font-bold text-white mb-4">Franchise Contents</h2>
+            <div className="flex items-center justify-between mb-4">
+        <h2 className="text-xl font-bold text-white">Franchise Contents</h2>
+        
+        {franchise.seasons.some(s => s.format === 'MOVIE' && s.movieCanonStatus !== 'CANON') && (
+          <label className="flex items-center gap-2 cursor-pointer group bg-dark-surface px-3 py-1.5 rounded-full border border-zinc-800 hover:border-zinc-700 transition-colors">
+            <input 
+              type="checkbox" 
+              checked={showNonCanon}
+              onChange={(e) => setShowNonCanon(e.target.checked)}
+              className="accent-accent w-3.5 h-3.5"
+            />
+            <span className="text-xs font-medium text-zinc-400 group-hover:text-white transition-colors">Show Filler Movies</span>
+          </label>
+        )}
+      </div>
       <div className="flex flex-col gap-3">
         {franchise.seasons.filter(season => {
           if (season.format === 'MOVIE' && season.movieCanonStatus !== 'CANON') {

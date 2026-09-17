@@ -7,8 +7,7 @@ import clsx from 'clsx';
 
 export default function MyAnimePage() {
   const [collection, setCollection] = useState([]);
-  const { profile } = useAuth();
-  const showNonCanon = profile?.show_non_canon_movies === true;
+  const showNonCanon = false; // Always hide non-canon from library view by default
   const [isLoading, setIsLoading] = useState(true);
   const [sortBy, setSortBy] = useState('updatedAt');
   const [activeTab, setActiveTab] = useState('All');

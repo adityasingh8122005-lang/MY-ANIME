@@ -15,7 +15,6 @@ export default function SettingsPage() {
   const [homePreference, setHomePreference] = useState('trending');
   const [isPublic, setIsPublic] = useState(false);
   const [showStatsInNavbar, setShowStatsInNavbar] = useState(true);
-  const [showNonCanonMovies, setShowNonCanonMovies] = useState(false);
   const [isAdminMode, setIsAdminMode] = useState(false);
   const [savingProfile, setSavingProfile] = useState(false);
 
@@ -28,7 +27,6 @@ export default function SettingsPage() {
       setHomePreference(profile.home_preference || 'trending');
       setIsPublic(profile.is_public || false);
       setShowStatsInNavbar(profile.show_stats_in_navbar !== false);
-      setShowNonCanonMovies(profile.show_non_canon_movies === true);
       setIsAdminMode(profile.role === 'admin');
     }
   }, [profile]);
@@ -70,7 +68,6 @@ export default function SettingsPage() {
         home_preference: homePreference,
         is_public: isPublic,
         show_stats_in_navbar: showStatsInNavbar,
-        show_non_canon_movies: showNonCanonMovies,
         role: (session.user.email === 'iamaditya8090@gmail.com' && isAdminMode) ? 'admin' : 'user',
         updated_at: new Date().toISOString()
       };
@@ -256,23 +253,7 @@ export default function SettingsPage() {
             </label>
           </div>
 
-          <hr className="border-zinc-800 my-4" />
-
-          <div>
-            <label className="block text-xs font-semibold text-zinc-500 uppercase mb-2">Movie Visibility</label>
-            <p className="text-sm text-zinc-400 mb-3">
-              Controls whether non-canon and filler movies are displayed in Franchise pages.
-            </p>
-            <label className="flex items-center gap-2 cursor-pointer group w-max">
-              <input 
-                type="checkbox" 
-                checked={showNonCanonMovies}
-                onChange={(e) => setShowNonCanonMovies(e.target.checked)}
-                className="accent-accent w-4 h-4"
-              />
-              <span className="text-sm text-zinc-300 group-hover:text-white">Show Filler / Non-Canon Movies</span>
-            </label>
-          </div>
+          
 
           {session?.user?.email === 'iamaditya8090@gmail.com' && (
             <>
