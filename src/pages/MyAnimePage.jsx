@@ -1,7 +1,8 @@
 import { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
-import { getGroupedCollection, autoHealUnknownMetadata, autoHealFranchiseDates } from '../services/franchiseService';
+import { getGroupedCollection, autoHealUnknownMetadata, autoHealFranchiseDates, addFranchiseToDb } from '../services/franchiseService';
+import { getFranchiseData } from '../services/franchiseApi';
 import { Loader2, Library, Folder, Edit2, Check, ArrowUp, ArrowDown, LayoutGrid, Menu, GripVertical } from 'lucide-react';
 import { DndContext, closestCenter, KeyboardSensor, PointerSensor, TouchSensor, useSensor, useSensors, DragOverlay } from '@dnd-kit/core';
 import { SortableContext, arrayMove, sortableKeyboardCoordinates, rectSortingStrategy, verticalListSortingStrategy } from '@dnd-kit/sortable';
@@ -43,6 +44,22 @@ export default function MyAnimePage() {
         autoHealUnknownMetadata();
         autoHealFranchiseDates();
         setCollection(data);
+        
+        // Deep heal completely corrupted "Unknown" single animes
+        const corrupted = data.filter(item => !item.isFranchise && item.title === "Unknown");
+        if (corrupted.length > 0) {
+          
+          for (const item of corrupted) {
+            console.log("Deep healing:", item.malId);
+            try {
+              const fData = await getFranchiseData(item.malId);
+              if (fData) await addFranchiseToDb(fData);
+            } catch(e) {}
+          }
+          // Reload if we healed any
+          getGroupedCollection(showNonCanon).then(setCollection);
+        }
+
       } catch (err) {
         console.error(err);
         setErrorObj(err.toString() + "\n" + err.stack);

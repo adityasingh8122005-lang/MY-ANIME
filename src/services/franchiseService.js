@@ -215,6 +215,10 @@ export async function getGroupedCollection(showNonCanonMovies = false) {
         }
       }
       
+      // Override for specific franchises known to be ongoing despite API errors
+      if (g.franchiseId === 'franchise_44511') { // Chainsaw Man
+        isOngoing = true;
+      }
       g.airStatus = isOngoing ? 'Ongoing' : 'Finished';
     } else {
       g.airStatus = (g.metadata && (g.metadata.status === 'Releasing' || g.metadata.status === 'Not yet aired' || g.metadata.status === 'RELEASING' || g.metadata.status === 'Currently Airing')) ? 'Ongoing' : 'Finished';
