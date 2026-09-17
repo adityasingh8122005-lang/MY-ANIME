@@ -44,28 +44,75 @@ export default function AdminPanelPage() {
       // Load Anime Global Popularity (Aggregating user_anime)
       // Since RLS allows admins to read all user_anime rows, we can fetch them and process them.
       // If the DB gets huge, we'd want a SQL view or RPC, but this works for now.
-      const { data: allAnime } = await supabase.from('user_anime').select('mal_id, personal_status');
+      const { data: allAnime } = await supabase.from('user_anime').select('user_id, mal_id, franchise_id, personal_status');
+      const { data: allFranchises } = await supabase.from('franchises').select('franchise_id, franchise_name');
       
       if (allAnime) {
-        const statsMap = {};
+        const franchiseDict = {};
+        if (allFranchises) {
+          allFranchises.forEach(f => {
+            franchiseDict[f.franchise_id] = f.franchise_name;
+          });
+        }
+
+        const userGroups = {};
+        const statusPriority = {
+          'Watching': 5,
+          'Plan to Watch': 4,
+          'On Hold': 3,
+          'Completed': 2,
+          'Watched': 2,
+          'Dropped': 1
+        };
+
         allAnime.forEach(row => {
-          if (!statsMap[row.mal_id]) {
-            statsMap[row.mal_id] = { mal_id: row.mal_id, total: 0, watching: 0, completed: 0, plan: 0, hold: 0, dropped: 0, title: 'Loading...' };
-          }
-          statsMap[row.mal_id].total++;
+          const groupId = row.franchise_id ? `f_${row.franchise_id}` : `m_${row.mal_id}`;
+          if (!userGroups[row.user_id]) userGroups[row.user_id] = {};
           
-          if (row.personal_status === 'Watching') statsMap[row.mal_id].watching++;
-          else if (row.personal_status === 'Completed' || row.personal_status === 'Watched') statsMap[row.mal_id].completed++;
-          else if (row.personal_status === 'Plan to Watch') statsMap[row.mal_id].plan++;
-          else if (row.personal_status === 'On Hold') statsMap[row.mal_id].hold++;
-          else if (row.personal_status === 'Dropped') statsMap[row.mal_id].dropped++;
+          if (!userGroups[row.user_id][groupId]) {
+            userGroups[row.user_id][groupId] = row.personal_status;
+          } else {
+            const currentStatus = userGroups[row.user_id][groupId];
+            if ((statusPriority[row.personal_status] || 0) > (statusPriority[currentStatus] || 0)) {
+              userGroups[row.user_id][groupId] = row.personal_status;
+            }
+          }
         });
-        
+
+        const statsMap = {};
+        Object.values(userGroups).forEach(userGroup => {
+          Object.entries(userGroup).forEach(([groupId, status]) => {
+            if (!statsMap[groupId]) {
+              statsMap[groupId] = { 
+                groupId, 
+                isFranchise: groupId.startsWith('f_'),
+                refId: groupId.startsWith('f_') ? groupId.substring(2) : parseInt(groupId.substring(2)),
+                total: 0, watching: 0, completed: 0, plan: 0, hold: 0, dropped: 0, 
+                title: 'Loading...' 
+              };
+            }
+            statsMap[groupId].total++;
+            
+            if (status === 'Watching') statsMap[groupId].watching++;
+            else if (status === 'Completed' || status === 'Watched') statsMap[groupId].completed++;
+            else if (status === 'Plan to Watch') statsMap[groupId].plan++;
+            else if (status === 'On Hold') statsMap[groupId].hold++;
+            else if (status === 'Dropped') statsMap[groupId].dropped++;
+          });
+        });
+
         const statsArr = Object.values(statsMap).sort((a, b) => b.total - a.total).slice(0, 50);
-        
-        // Fetch titles from AniList
-        if (statsArr.length > 0) {
-          const malIds = statsArr.map(s => s.mal_id);
+
+        const missingMalIds = [];
+        statsArr.forEach(stat => {
+          if (stat.isFranchise) {
+            stat.title = franchiseDict[stat.refId] || `Unknown Franchise (ID: ${stat.refId})`;
+          } else {
+            missingMalIds.push(stat.refId);
+          }
+        });
+
+        if (missingMalIds.length > 0) {
           try {
             const query = `
               query ($idMal_in: [Int]) {
@@ -83,23 +130,26 @@ export default function AdminPanelPage() {
             const response = await fetch('https://graphql.anilist.co', {
               method: 'POST',
               headers: { 'Content-Type': 'application/json' },
-              body: JSON.stringify({ query, variables: { idMal_in: malIds } })
+              body: JSON.stringify({ query, variables: { idMal_in: missingMalIds } })
             });
             const json = await response.json();
             const mediaList = json.data?.Page?.media || [];
             
-            // Map titles back to statsArr
             statsArr.forEach(stat => {
-              const media = mediaList.find(m => m.idMal === stat.mal_id);
-              if (media && media.title) {
-                stat.title = media.title.english || media.title.romaji || 'Unknown Title';
-              } else {
-                stat.title = 'Unknown Title (ID: ' + stat.mal_id + ')';
+              if (!stat.isFranchise) {
+                const media = mediaList.find(m => m.idMal === stat.refId);
+                if (media && media.title) {
+                  stat.title = media.title.english || media.title.romaji || 'Unknown Title';
+                } else {
+                  stat.title = 'Unknown Title (ID: ' + stat.refId + ')';
+                }
               }
             });
           } catch(e) {
-            console.error('Failed to fetch anime titles:', e);
-            statsArr.forEach(s => s.title = 'Unknown Title');
+            console.error('Failed to fetch standalone anime titles:', e);
+            statsArr.forEach(s => {
+              if (!s.isFranchise) s.title = 'Unknown Anime';
+            });
           }
         }
         
@@ -247,7 +297,7 @@ export default function AdminPanelPage() {
                   </thead>
                   <tbody className="divide-y divide-zinc-800">
                     {animeStats.map(stat => (
-                      <tr key={stat.mal_id} className="hover:bg-zinc-800/50 transition-colors">
+                      <tr key={stat.groupId} className="hover:bg-zinc-800/50 transition-colors">
                         <td className="px-6 py-4 font-medium text-white max-w-xs truncate" title={stat.title}>
                           <div className="line-clamp-2">{stat.title}</div>
                         </td>
