@@ -9,7 +9,8 @@ import { updateUserAnime } from '../services/userService';
 import { Loader2, ArrowLeft, Folder, Tv, Film, CheckCircle } from 'lucide-react';
 
 export default function FranchiseDetailsPage() {
-  const { session } = useAuth();
+  const { session, profile } = useAuth();
+  const showNonCanon = profile?.show_non_canon_movies === true;
   const { openLoginModal } = useLoginModal();
   const { id } = useParams();
   const navigate = useNavigate();
@@ -106,9 +107,14 @@ export default function FranchiseDetailsPage() {
         </div>
       </div>
 
-      <h2 className="text-xl font-bold text-white mb-4">Franchise Contents</h2>
+            <h2 className="text-xl font-bold text-white mb-4">Franchise Contents</h2>
       <div className="flex flex-col gap-3">
-        {franchise.seasons.map(season => (
+        {franchise.seasons.filter(season => {
+          if (season.format === 'MOVIE' && season.movieCanonStatus !== 'CANON') {
+            return showNonCanon;
+          }
+          return true;
+        }).map(season => (
           <Link 
             key={season.malId} 
             to={`/anime/${season.malId}`}
@@ -117,10 +123,16 @@ export default function FranchiseDetailsPage() {
             {season.format === 'TV' ? <Tv className="text-zinc-500 group-hover:text-accent" size={24} /> : <Film className="text-zinc-500 group-hover:text-accent" size={24} />}
             <div className="flex-1">
               <h3 className="font-bold text-zinc-200 group-hover:text-white">{season.title}</h3>
-              <div className="text-xs text-zinc-500 flex items-center gap-2">
+              <div className="text-xs text-zinc-500 flex items-center gap-2 flex-wrap">
                 <span>{season.format}</span>
+                {season.format === 'MOVIE' && season.movieCanonStatus !== 'CANON' && (
+                  <>
+                    <span>•</span>
+                    <span className="text-red-400 font-bold uppercase tracking-wider text-[10px] bg-red-900/20 px-1.5 py-0.5 rounded">NON-CANON / FILLER</span>
+                  </>
+                )}
                 <span>•</span>
-                <span>{season.canonEpisodes} Canon Episodes</span>
+                <span>{season.format === 'MOVIE' && season.movieCanonStatus !== 'CANON' ? 0 : (season.canonEpisodes || season.episodes || 1)} Canon Episodes</span>
               </div>
             </div>
             <div className="text-sm font-medium text-zinc-300">

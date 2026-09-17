@@ -84,7 +84,8 @@ export async function getFranchiseWithProgress(franchiseId) {
   const filteredSeasons = fObj.seasons.filter(s => s.format !== 'SPECIAL');
   const enrichedSeasons = filteredSeasons.map(s => {
     const user = progressMap.get(s.malId) || { episodes_watched: 0 };
-    const maxCanon = s.canonEpisodes || s.episodes || 0;
+    const isNonCanonMovie = s.format === "MOVIE" && s.movieCanonStatus !== "CANON";
+    const maxCanon = isNonCanonMovie ? 0 : (s.canonEpisodes || s.episodes || 0);
     const watched = maxCanon > 0 ? Math.min(user.episodes_watched || 0, maxCanon) : (user.episodes_watched || 0);
     
     totalCanon += maxCanon;
@@ -104,7 +105,7 @@ export async function getFranchiseWithProgress(franchiseId) {
   };
 }
 
-export async function getGroupedCollection() {
+export async function getGroupedCollection(showNonCanonMovies = false) {
   const userAnimes = await getAllUserAnime(true); // this already camelCases and includes metadata
   if (!userAnimes || userAnimes.length === 0) return [];
 
@@ -133,8 +134,11 @@ export async function getGroupedCollection() {
       
       // Skip SPECIALs entirely
       if (sData?.format === 'SPECIAL' || meta?.format === 'SPECIAL') continue;
+      
+      const isNonCanonMovie = (sData?.format === "MOVIE" || meta?.format === "MOVIE") && sData?.movieCanonStatus !== "CANON";
+      if (isNonCanonMovie && !showNonCanonMovies) continue;
 
-      const canon = sData?.canonEpisodes || meta?.episodes || 0;
+      const canon = isNonCanonMovie ? 0 : (sData?.canonEpisodes || meta?.episodes || 0);
       const watched = canon > 0 ? Math.min(ua.episodesWatched || 0, canon) : (ua.episodesWatched || 0);
       
       g.totalCanon += canon;
@@ -146,6 +150,8 @@ export async function getGroupedCollection() {
       }
     } else {
       if (meta?.format === "SPECIAL") continue;
+      // We don't have movieCanonStatus natively for legacy, but if it's MOVIE we assume UNKNOWN -> hide if setting is off.
+      if (meta?.format === "MOVIE" && !showNonCanonMovies) continue;
       groups.set(`legacy_${ua.malId}`, {
         isFranchise: false,
         malId: ua.malId,

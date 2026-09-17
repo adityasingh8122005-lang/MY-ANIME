@@ -36,6 +36,26 @@ export default async function handler(req, res) {
     const visited = new Set();
     const rawSeasons = [];
 
+    
+    const MOVIE_CANON_DB = {
+      // CANON
+      40456: 'CANON', // Demon Slayer: Mugen Train
+      52742: 'CANON', // Haikyuu Dumpster Battle
+      16870: 'CANON', // The Last: Naruto
+      48561: 'CANON', // JJK 0
+      36946: 'CANON', // DBS Broly
+      51552: 'CANON', // DBS Super Hero
+      // NON-CANON
+      50652: 'NON_CANON', // One Piece Film Red
+      13667: 'NON_CANON', // Road to Ninja
+      41285: 'NON_CANON', // One Piece Film Red (Wait, 50652 is Red, 41285 is maybe Stampede?)
+      31490: 'NON_CANON', // One Piece Film Gold
+      35672: 'NON_CANON', // MHA Two Heroes
+      39565: 'NON_CANON', // MHA Heroes Rising
+      40854: 'NON_CANON', // MHA World Heroes Mission
+      // ADD MORE IF NEEDED
+    };
+
     // Find Root
     let currentIdMal = startMedia.idMal;
     while (true) {
@@ -58,12 +78,18 @@ export default async function handler(req, res) {
       visited.add(currentMedia.idMal);
       
       if (['TV', 'MOVIE'].includes(currentMedia.format)) {
+        let movieCanonStatus = undefined;
+        if (currentMedia.format === 'MOVIE') {
+          movieCanonStatus = MOVIE_CANON_DB[currentMedia.idMal] || 'UNKNOWN';
+        }
+
         rawSeasons.push({
           malId: currentMedia.idMal,
           title: currentMedia.title.english || currentMedia.title.romaji,
           format: currentMedia.format,
           episodes: currentMedia.episodes || null,
-          poster: currentMedia.coverImage?.large
+          poster: currentMedia.coverImage?.large,
+          movieCanonStatus
         });
       }
       

@@ -1,11 +1,14 @@
 import { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
+import { useAuth } from '../contexts/AuthContext';
 import { getGroupedCollection } from '../services/franchiseService';
 import { Loader2, Library, Folder, Edit2, Check, ArrowUp, ArrowDown } from 'lucide-react';
 import clsx from 'clsx';
 
 export default function MyAnimePage() {
   const [collection, setCollection] = useState([]);
+  const { profile } = useAuth();
+  const showNonCanon = profile?.show_non_canon_movies === true;
   const [isLoading, setIsLoading] = useState(true);
   const [sortBy, setSortBy] = useState('updatedAt');
   const [activeTab, setActiveTab] = useState('All');
@@ -17,7 +20,7 @@ export default function MyAnimePage() {
     async function load() {
       setIsLoading(true);
       try {
-        const data = await getGroupedCollection();
+        const data = await getGroupedCollection(showNonCanon);
         setCollection(data);
       } catch (err) {
         console.error(err);
@@ -26,7 +29,7 @@ export default function MyAnimePage() {
       }
     }
     load();
-  }, []);
+  }, [showNonCanon]);
 
   useEffect(() => {
     if (customOrder.length > 0) {
