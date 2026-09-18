@@ -12,6 +12,7 @@ query {
       idMal
       title { romaji english }
       coverImage { large }
+      bannerImage
       episodes
       status
     }
@@ -63,7 +64,7 @@ export default function HomePage() {
   }
 
   return (
-    <div className="max-w-7xl mx-auto relative overflow-hidden isolate">
+    <div className="max-w-7xl mx-auto relative isolate">
       <AnimatedAnimeBackground anime={trending} />
       <div className="relative z-10 px-4 pb-8">
       <div className="mb-8 text-center pt-8">

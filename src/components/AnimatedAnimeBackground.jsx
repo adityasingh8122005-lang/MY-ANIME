@@ -15,7 +15,7 @@ export default function AnimatedAnimeBackground({ anime = [] }) {
 
   // Use up to 6 valid images from the existing data
   const validImages = anime
-    .map(a => a?.coverImage?.large)
+    .map(a => a?.bannerImage || a?.coverImage?.large)
     .filter(Boolean)
     .slice(0, 6);
 
@@ -49,7 +49,10 @@ export default function AnimatedAnimeBackground({ anime = [] }) {
   if (validImages.length === 0) return null;
 
   return (
-    <div className="absolute inset-0 z-0 pointer-events-none overflow-hidden bg-dark-base">
+    <div 
+      className="absolute z-0 pointer-events-none overflow-hidden bg-dark-base"
+      style={{ width: '100vw', left: '50%', transform: 'translateX(-50%)', top: '-2rem', bottom: '-2rem' }}
+    >
       {validImages.map((img, i) => {
          // Keep only 2 DOM layers active at once: current and previous (which is fading out)
          const isCurrent = i === currentIndex;
@@ -67,18 +70,18 @@ export default function AnimatedAnimeBackground({ anime = [] }) {
              style={{ 
                backgroundImage: `url(${img})`,
                transitionDuration: '2000ms',
-               opacity: isCurrent ? 0.15 : 0,
-               filter: 'blur(24px)'
+               opacity: isCurrent ? 0.35 : 0,
+               filter: 'blur(16px)'
              }}
            />
          );
       })}
       
       {/* Overlays to ensure readability and maintain premium atmosphere */}
-      <div className="absolute inset-0 bg-gradient-to-b from-dark-base via-dark-base/50 to-dark-base" />
+      <div className="absolute inset-0 bg-gradient-to-b from-dark-base via-transparent to-dark-base" />
       <div className="absolute inset-0 bg-gradient-to-r from-dark-base via-transparent to-dark-base opacity-90" />
-      <div className="absolute inset-0 bg-dark-base/40" />
-      <div className="absolute inset-0 bg-accent/10 mix-blend-overlay" />
+      <div className="absolute inset-0 bg-dark-base/50" />
+      <div className="absolute inset-0 bg-accent/20 mix-blend-overlay" />
     </div>
   );
 }
