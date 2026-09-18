@@ -202,6 +202,9 @@ export async function getGroupedCollection(showNonCanonMovies = false) {
             isOngoing = true;
             break;
           }
+          if (season.sourceOngoing === true) {
+            isOngoing = true;
+          }
         }
       }
       

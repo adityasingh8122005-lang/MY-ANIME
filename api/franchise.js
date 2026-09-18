@@ -81,6 +81,14 @@ export default async function handler(req, res) {
       visited.add(currentMedia.idMal);
       
       if ((!currentMedia.format || ['TV', 'MOVIE', 'ONA', 'OVA', 'SPECIAL', 'TV_SHORT'].includes(currentMedia.format))) {
+        let sourceOngoing = false;
+        if (currentMedia.relations && currentMedia.relations.edges) {
+          const sourceEdge = currentMedia.relations.edges.find(e => e.relationType === 'ADAPTATION' || e.relationType === 'SOURCE');
+          if (sourceEdge && sourceEdge.node && (sourceEdge.node.status === 'RELEASING' || sourceEdge.node.status === 'HIATUS' || sourceEdge.node.status === 'NOT_YET_RELEASED')) {
+            sourceOngoing = true;
+          }
+        }
+        
         let movieCanonStatus = undefined;
         if (currentMedia.format === 'MOVIE') {
           movieCanonStatus = MOVIE_CANON_DB[currentMedia.idMal] || 'UNKNOWN';
@@ -94,7 +102,8 @@ export default async function handler(req, res) {
           poster: currentMedia.coverImage?.large,
           status: currentMedia.status,
           movieCanonStatus,
-          startDate: currentMedia.startDate
+          startDate: currentMedia.startDate,
+          sourceOngoing
         });
       }
       
