@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
 import MyAnimePage from './MyAnimePage';
+import AnimatedAnimeBackground from '../components/AnimatedAnimeBackground';
 import { Flame, Loader2 } from 'lucide-react';
 
 const TRENDING_QUERY = `
@@ -62,7 +63,9 @@ export default function HomePage() {
   }
 
   return (
-    <div className="max-w-7xl mx-auto">
+    <div className="max-w-7xl mx-auto relative overflow-hidden isolate">
+      <AnimatedAnimeBackground anime={trending} />
+      <div className="relative z-10 px-4 pb-8">
       <div className="mb-8 text-center pt-8">
         <h1 className="text-3xl font-bold text-white mb-2 flex items-center justify-center gap-2">
           <Flame className="text-accent" size={32} /> Trending Anime
@@ -94,6 +97,7 @@ export default function HomePage() {
           </Link>
         ))}
       </div>
+          </div>
     </div>
   );
 }

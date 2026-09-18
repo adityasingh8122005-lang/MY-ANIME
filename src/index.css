@@ -23,3 +23,18 @@
     scrollbar-width: none;
   }
 }
+
+@keyframes cinematic-pan {
+  0% {
+    transform: scale(1) translate(0, 0);
+  }
+  100% {
+    transform: scale(1.06) translate(1%, 1%);
+  }
+}
+
+@layer utilities {
+  .animate-cinematic-pan {
+    animation: cinematic-pan 14s ease-in-out infinite alternate;
+  }
+}
