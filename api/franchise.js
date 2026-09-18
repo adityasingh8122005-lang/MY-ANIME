@@ -67,7 +67,7 @@ export default async function handler(req, res) {
       const media = await fetchMedia(currentIdMal);
       if (!media) break;
       const prequel = media.relations.edges.find(e => 
-        e.relationType === 'PREQUEL' && ['TV', 'MOVIE', 'ONA', 'OVA', 'SPECIAL', 'TV_SHORT'].includes(e.node.format)
+        e.relationType === 'PREQUEL' && (!e.node.format || ['TV', 'MOVIE', 'ONA', 'OVA', 'SPECIAL', 'TV_SHORT'].includes(e.node.format))
       );
       if (prequel && prequel.node.idMal) currentIdMal = prequel.node.idMal;
       else break;
@@ -80,7 +80,7 @@ export default async function handler(req, res) {
       if (visited.has(currentMedia.idMal)) break;
       visited.add(currentMedia.idMal);
       
-      if (['TV', 'MOVIE', 'ONA', 'OVA', 'SPECIAL', 'TV_SHORT'].includes(currentMedia.format)) {
+      if ((!currentMedia.format || ['TV', 'MOVIE', 'ONA', 'OVA', 'SPECIAL', 'TV_SHORT'].includes(currentMedia.format))) {
         let movieCanonStatus = undefined;
         if (currentMedia.format === 'MOVIE') {
           movieCanonStatus = MOVIE_CANON_DB[currentMedia.idMal] || 'UNKNOWN';
@@ -99,7 +99,7 @@ export default async function handler(req, res) {
       }
       
       const sequel = currentMedia.relations.edges.find(e => 
-        e.relationType === 'SEQUEL' && ['TV', 'MOVIE', 'ONA', 'OVA', 'SPECIAL', 'TV_SHORT'].includes(e.node.format)
+        e.relationType === 'SEQUEL' && (!e.node.format || ['TV', 'MOVIE', 'ONA', 'OVA', 'SPECIAL', 'TV_SHORT'].includes(e.node.format))
       );
       if (sequel && sequel.node.idMal) currentMedia = await fetchMedia(sequel.node.idMal);
       else break;

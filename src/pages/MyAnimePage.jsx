@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
-import { getGroupedCollection, autoHealUnknownMetadata, autoHealFranchiseDates, addFranchiseToDb } from '../services/franchiseService';
+import { getGroupedCollection, autoHealUnknownMetadata, autoHealFranchiseDates, addFranchiseToDb, autoSyncStaleData, autoRebuildFranchises } from '../services/franchiseService';
 import { getFranchiseData } from '../services/franchiseApi';
 import { Loader2, Library, Folder, Edit2, Check, ArrowUp, ArrowDown, LayoutGrid, Menu, GripVertical } from 'lucide-react';
 import { DndContext, closestCenter, KeyboardSensor, PointerSensor, TouchSensor, useSensor, useSensors, DragOverlay } from '@dnd-kit/core';
@@ -43,6 +43,8 @@ export default function MyAnimePage() {
         // Silently heal in background
         autoHealUnknownMetadata();
         autoHealFranchiseDates();
+        autoSyncStaleData();
+        autoRebuildFranchises();
         setCollection(data);
         
         // Deep heal completely corrupted "Unknown" single animes
