@@ -50,8 +50,8 @@ export default function AnimatedAnimeBackground({ anime = [] }) {
 
   return (
     <div 
-      className="absolute z-0 pointer-events-none overflow-hidden bg-dark-base"
-      style={{ width: '100vw', left: '50%', transform: 'translateX(-50%)', top: '-2rem', bottom: '-2rem' }}
+      className="absolute z-0 pointer-events-none overflow-hidden"
+      style={{ width: '100vw', left: '50%', transform: 'translateX(-50%)', top: '-2rem', height: 'calc(100% + 4rem)' }}
     >
       {validImages.map((img, i) => {
          // Keep only 2 DOM layers active at once: current and previous (which is fading out)
@@ -68,20 +68,19 @@ export default function AnimatedAnimeBackground({ anime = [] }) {
                !reducedMotion && "animate-cinematic-pan"
              )}
              style={{ 
-               backgroundImage: `url(${img})`,
+               backgroundImage: `url("${img}")`,
                transitionDuration: '2000ms',
-               opacity: isCurrent ? 0.35 : 0,
-               filter: 'blur(16px)'
+               opacity: isCurrent ? 0.20 : 0,
+               filter: 'blur(24px)'
              }}
            />
          );
       })}
       
       {/* Overlays to ensure readability and maintain premium atmosphere */}
-      <div className="absolute inset-0 bg-gradient-to-b from-dark-base via-transparent to-dark-base" />
-      <div className="absolute inset-0 bg-gradient-to-r from-dark-base via-transparent to-dark-base opacity-90" />
-      <div className="absolute inset-0 bg-dark-base/50" />
-      <div className="absolute inset-0 bg-accent/20 mix-blend-overlay" />
+      <div className="absolute inset-0 bg-gradient-to-b from-dark-base/30 via-transparent to-dark-base" />
+      <div className="absolute inset-0 bg-gradient-to-r from-dark-base via-transparent to-dark-base opacity-70" />
+      <div className="absolute inset-0 bg-accent/10 mix-blend-overlay" />
     </div>
   );
 }

@@ -1,0 +1,22 @@
+<!DOCTYPE html>
+<html>
+<head>
+<style>
+  body { background: #09090b; color: white; margin: 0; padding: 0; }
+  .main { max-width: 1280px; margin: 0 auto; padding: 2rem 1rem; position: relative; }
+  .relative-parent { position: relative; isolation: isolate; border: 1px solid blue; }
+  .bg-layer { position: absolute; z-index: 0; pointer-events: none; overflow: hidden; background: red; width: 100vw; left: 50%; transform: translateX(-50%); top: -2rem; bottom: -2rem; }
+  .content { position: relative; z-index: 10; height: 500px; border: 1px solid green; }
+</style>
+</head>
+<body>
+  <div class="main">
+    <div class="relative-parent">
+      <div class="bg-layer">
+         <div style="position:absolute; inset:0; background: url('https://s4.anilist.co/file/anilistcdn/media/anime/cover/large/bx113415-bbBWj4pEFseh.jpg') center/cover; opacity: 0.35; filter: blur(16px);"></div>
+      </div>
+      <div class="content">Content here</div>
+    </div>
+  </div>
+</body>
+</html>
