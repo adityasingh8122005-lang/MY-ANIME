@@ -14,37 +14,38 @@ export default function AnimatedAnimeBackground({ anime = [] }) {
   }, []);
 
   // Use up to 6 valid images from the existing data
-  const validImages = anime
+  // Use up to 6 UNIQUE valid images from the existing data
+  const rawImages = anime
     .map(a => a?.bannerImage || a?.coverImage?.large || a?.poster)
-    .filter(Boolean)
-    .slice(0, 6);
+    .filter(Boolean);
+  
+  const validImages = [...new Set(rawImages)].slice(0, 6);
 
   useEffect(() => {
     if (validImages.length <= 1) return;
     
-    let interval;
-    const startInterval = () => {
-       interval = setInterval(() => {
-         setCurrentIndex(prev => (prev + 1) % validImages.length);
-       }, 10000); // 8s hold + 2s crossfade
-    };
+    let interval = setInterval(() => {
+      setCurrentIndex(prev => (prev + 1) % validImages.length);
+    }, 10000);
 
     const handleVisibility = () => {
        if (document.hidden) {
           clearInterval(interval);
        } else {
-          startInterval();
+          clearInterval(interval);
+          interval = setInterval(() => {
+            setCurrentIndex(prev => (prev + 1) % validImages.length);
+          }, 10000);
        }
     };
 
-    startInterval();
     document.addEventListener('visibilitychange', handleVisibility);
 
     return () => {
       clearInterval(interval);
       document.removeEventListener('visibilitychange', handleVisibility);
     };
-  }, [validImages.length]);
+  }, [validImages.join(',')]); // Safely re-bind if the exact images change
 
   if (validImages.length === 0) return null;
 
