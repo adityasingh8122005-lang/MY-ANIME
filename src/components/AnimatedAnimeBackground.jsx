@@ -52,7 +52,7 @@ export default function AnimatedAnimeBackground({ anime = [] }) {
   return (
     <div 
       className="absolute z-0 pointer-events-none overflow-hidden"
-      style={{ width: '100vw', left: '50%', transform: 'translateX(-50%)', top: '-2rem', height: 'calc(100% + 4rem)' }}
+      style={{ width: '100vw', left: '50%', transform: 'translateX(-50%)', top: '-2rem', height: '100vh' }}
     >
       {validImages.map((img, i) => {
          // Keep only 2 DOM layers active at once: current and previous (which is fading out)
@@ -71,7 +71,7 @@ export default function AnimatedAnimeBackground({ anime = [] }) {
              style={{ 
                backgroundImage: `url("${img}")`,
                transitionDuration: '2000ms',
-               opacity: isCurrent ? 0.85 : 0,
+               opacity: isCurrent ? 1 : 0,
                /* no blur for sharp art */
              }}
            />
