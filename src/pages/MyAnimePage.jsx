@@ -112,6 +112,9 @@ export default function MyAnimePage() {
   };
 
   let filtered = collection.filter(item => {
+    if (activeTab === 'All' && item.personalStatus === 'Plan to Watch') {
+      return false; // User requested to hide Plan to Watch items from the 'All' tab
+    }
     if (activeTab !== 'All' && item.personalStatus !== activeTab) {
       return false;
     }
