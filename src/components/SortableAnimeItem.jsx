@@ -47,7 +47,7 @@ export default function SortableAnimeItem({ item, activeTab, isEditingOrder, vie
               <div className="absolute bottom-0 left-0 right-0 h-1 bg-zinc-800 z-10">
                 <div 
                   className="h-full bg-accent" 
-                  style={{ width: `${Math.min(100, ((item.totalWatched ?? item.episodesWatched) / (item.totalCanon ?? item.canonEpisodes)) * 100)}%` }}
+                  style={{ width: `${Math.min(100, ((item.totalWatchedAll ?? item.episodesWatched) / (item.totalEpisodes ?? item.canonEpisodes)) * 100)}%` }}
                 />
               </div>
             )}
@@ -74,7 +74,7 @@ export default function SortableAnimeItem({ item, activeTab, isEditingOrder, vie
           </div>
           <div className="flex-shrink-0 px-4 text-right hidden sm:block">
             <div className="text-xs font-medium text-zinc-300">
-              {item.totalWatched ?? item.episodesWatched ?? 0} / {item.totalCanon ?? item.canonEpisodes ?? '?'}
+              {item.totalWatchedAll ?? item.episodesWatched ?? 0} / {item.totalEpisodes ?? item.canonEpisodes ?? '?'}
             </div>
             <div className="text-[10px] text-zinc-600 mt-0.5">Eps</div>
           </div>
@@ -127,7 +127,7 @@ export default function SortableAnimeItem({ item, activeTab, isEditingOrder, vie
             <div className="absolute bottom-0 left-0 right-0 h-1 bg-zinc-800 z-10">
               <div 
                 className="h-full bg-accent" 
-                style={{ width: `${Math.min(100, ((item.totalWatched ?? item.episodesWatched) / (item.totalCanon ?? item.canonEpisodes)) * 100)}%` }}
+                style={{ width: `${Math.min(100, ((item.totalWatchedAll ?? item.episodesWatched) / (item.totalEpisodes ?? item.canonEpisodes)) * 100)}%` }}
               />
             </div>
           )}
@@ -137,7 +137,7 @@ export default function SortableAnimeItem({ item, activeTab, isEditingOrder, vie
             {item.title}
           </h3>
           <p className="text-[10px] text-zinc-500 mt-auto pt-2 flex justify-between items-center">
-            <span>{item.totalWatched ?? item.episodesWatched ?? 0} / {item.totalCanon ?? item.canonEpisodes ?? '?'} Eps</span>
+            <span>{item.totalWatchedAll ?? item.episodesWatched ?? 0} / {item.totalEpisodes ?? item.canonEpisodes ?? '?'} Eps</span>
             {(activeTab === 'Completed' || activeTab === 'Plan to Watch') && item.airStatus && (
               <span className={clsx(item.airStatus === 'Ongoing' ? 'text-green-500' : 'text-zinc-600')}>
                 {item.airStatus}

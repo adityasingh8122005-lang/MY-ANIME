@@ -90,6 +90,8 @@ export async function getFranchiseWithProgress(franchiseId) {
 
   let totalCanon = 0;
   let totalWatched = 0;
+  let totalEpisodes = 0;
+  let totalWatchedAll = 0;
 
   const filteredSeasons = fObj.seasons.filter(s => s.format !== 'SPECIAL' && s.format !== 'OVA');
   const enrichedSeasons = filteredSeasons.map(s => {
@@ -102,6 +104,9 @@ export async function getFranchiseWithProgress(franchiseId) {
     
     totalCanon += maxCanon;
     totalWatched += watched;
+    const seasonTotal = s.episodes || maxCanon;
+    totalEpisodes += seasonTotal;
+    totalWatchedAll += (user.episodes_watched || 0);
 
     return {
       ...s,
@@ -114,6 +119,8 @@ export async function getFranchiseWithProgress(franchiseId) {
     ...fObj,
     totalCanon,
     totalWatched,
+    totalEpisodes,
+    totalWatchedAll,
     seasons: enrichedSeasons
   };
 }
@@ -138,6 +145,8 @@ export async function getGroupedCollection(showNonCanonMovies = false) {
           seasons: [],
           totalCanon: 0,
           totalWatched: 0,
+          totalEpisodes: 0,
+          totalWatchedAll: 0,
           updatedAt: ua.updatedAt
         });
       }
@@ -159,6 +168,9 @@ export async function getGroupedCollection(showNonCanonMovies = false) {
       
       g.totalCanon += canon;
       g.totalWatched += watched;
+      const seasonTotal = meta?.episodes || canon;
+      g.totalEpisodes += seasonTotal;
+      g.totalWatchedAll += (ua.episodesWatched || 0);
       g.seasons.push({ ...ua, metadata: meta, canonEpisodes: canon, episodesWatched: watched });
       
       if (new Date(ua.updatedAt) > new Date(g.updatedAt)) {
@@ -173,7 +185,9 @@ export async function getGroupedCollection(showNonCanonMovies = false) {
         malId: ua.malId,
         title: meta?.title || "Unknown",
         poster: meta?.poster,
-        episodesWatched: (meta?.episodes > 0) ? Math.min(ua.episodesWatched || 0, meta.episodes) : (ua.episodesWatched || 0),
+        episodesWatched: ua.episodesWatched || 0,
+        totalEpisodes: meta?.episodes || 0,
+        totalWatchedAll: ua.episodesWatched || 0,
         canonEpisodes: meta?.episodes || 0,
         personalStatus: ua.personalStatus,
         personalRating: ua.personalRating,
@@ -186,7 +200,7 @@ export async function getGroupedCollection(showNonCanonMovies = false) {
   const result = Array.from(groups.values());
   for (const g of result) {
     if (g.isFranchise) {
-      if (g.totalCanon > 0 && g.totalWatched >= g.totalCanon) {
+      if ((g.totalEpisodes > 0 && g.totalWatchedAll >= g.totalEpisodes) || (g.totalCanon > 0 && g.totalWatched >= g.totalCanon)) {
         g.personalStatus = 'Completed';
       } else if (g.totalWatched > 0) {
         g.personalStatus = 'Watching';

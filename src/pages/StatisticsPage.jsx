@@ -28,8 +28,14 @@ export default function StatisticsPage() {
 
         // 2. Global Totals
         let totalEpisodesWatched = 0;
+        let totalCanonWatched = 0;
+        let totalFillerWatched = 0;
         groupedCollection.forEach(a => {
-          totalEpisodesWatched += (a.totalWatched ?? a.episodesWatched ?? 0);
+          const watchedAll = a.totalWatchedAll ?? a.episodesWatched ?? 0;
+          const watchedCanon = a.totalWatched ?? a.episodesWatched ?? 0;
+          totalEpisodesWatched += watchedAll;
+          totalCanonWatched += watchedCanon;
+          totalFillerWatched += Math.max(0, watchedAll - watchedCanon);
         });
 
         const totalWatchingSessions = watchHistory.length;
@@ -84,6 +90,8 @@ export default function StatisticsPage() {
         setStats({
           collectionStats,
           totalEpisodesWatched,
+          totalCanonWatched,
+          totalFillerWatched,
           totalWatchingSessions,
           estWatchHours,
           chartData,
@@ -134,7 +142,11 @@ export default function StatisticsPage() {
           <div className="text-zinc-500 text-xs font-bold uppercase tracking-wider mb-2 flex items-center gap-2">
             <Tv size={14} /> Total Episodes
           </div>
-          <div className="text-3xl font-bold text-white">{stats.totalEpisodesWatched}</div>
+          <div className="text-3xl font-bold text-white mb-2">{stats.totalEpisodesWatched}</div>
+          <div className="flex gap-4 text-xs">
+            <div className="text-zinc-400">Canon: <span className="text-zinc-200 font-bold">{stats.totalCanonWatched}</span></div>
+            <div className="text-zinc-400">Filler: <span className="text-zinc-200 font-bold">{stats.totalFillerWatched}</span></div>
+          </div>
         </div>
         <div className="bg-dark-surface border border-zinc-800 rounded-lg p-6">
           <div className="text-zinc-500 text-xs font-bold uppercase tracking-wider mb-2 flex items-center gap-2">
