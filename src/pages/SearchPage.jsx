@@ -10,6 +10,7 @@ query ($search: String) {
       idMal
       title { romaji english }
       coverImage { large }
+      bannerImage
       episodes
       status
     }
@@ -66,7 +67,9 @@ export default function SearchPage() {
   };
 
   return (
-    <div className="max-w-7xl mx-auto">
+    <div className="max-w-7xl mx-auto relative isolate min-h-[500px]">
+      <AnimatedAnimeBackground anime={results} />
+      <div className="relative z-10 px-4">
       <div className="mb-8 text-center pt-8">
         <h1 className="text-3xl font-bold text-white mb-2 flex items-center justify-center gap-3">
           <SearchIcon className="text-accent" size={32} /> Search
@@ -159,6 +162,7 @@ export default function SearchPage() {
           )}
         </div>
       )}
+          </div>
     </div>
   );
 }

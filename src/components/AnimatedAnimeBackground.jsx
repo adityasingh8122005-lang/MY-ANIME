@@ -15,7 +15,7 @@ export default function AnimatedAnimeBackground({ anime = [] }) {
 
   // Use up to 6 valid images from the existing data
   const validImages = anime
-    .map(a => a?.bannerImage || a?.coverImage?.large)
+    .map(a => a?.bannerImage || a?.coverImage?.large || a?.poster)
     .filter(Boolean)
     .slice(0, 6);
 
@@ -70,7 +70,7 @@ export default function AnimatedAnimeBackground({ anime = [] }) {
              style={{ 
                backgroundImage: `url("${img}")`,
                transitionDuration: '2000ms',
-               opacity: isCurrent ? 0.20 : 0,
+               opacity: isCurrent ? 0.35 : 0,
                filter: 'blur(24px)'
              }}
            />

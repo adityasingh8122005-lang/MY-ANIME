@@ -7,6 +7,7 @@ import { Loader2, Library, Folder, Edit2, Check, ArrowUp, ArrowDown, LayoutGrid,
 import { DndContext, closestCenter, KeyboardSensor, PointerSensor, TouchSensor, useSensor, useSensors, DragOverlay } from '@dnd-kit/core';
 import { SortableContext, arrayMove, sortableKeyboardCoordinates, rectSortingStrategy, verticalListSortingStrategy } from '@dnd-kit/sortable';
 import SortableAnimeItem from '../components/SortableAnimeItem';
+import AnimatedAnimeBackground from '../components/AnimatedAnimeBackground';
 
 import clsx from 'clsx';
 
@@ -146,7 +147,9 @@ export default function MyAnimePage() {
   const tabs = ['All', 'Watching', 'Completed', 'Plan to Watch'];
 
   return (
-    <div className="max-w-7xl mx-auto pb-12">
+    <div className="max-w-7xl mx-auto pb-12 relative isolate">
+      <AnimatedAnimeBackground anime={collection} />
+      <div className="relative z-10 px-4">
       <div className="flex flex-col md:flex-row md:items-center justify-between mb-6 gap-4">
         <h1 className="text-2xl font-bold text-white flex items-center gap-2">
           <Library className="text-accent" /> My Anime Collection
@@ -276,6 +279,7 @@ export default function MyAnimePage() {
           </DragOverlay>
         </DndContext>
       )}
+          </div>
     </div>
   );
 }

@@ -10,6 +10,7 @@ query ($page: Int, $genre: String, $format: MediaFormat, $status: MediaStatus) {
       idMal
       title { romaji english }
       coverImage { large }
+      bannerImage
       episodes
       status
       genres
@@ -147,7 +148,9 @@ export default function SurpriseMePage() {
   };
 
   return (
-    <div className="max-w-4xl mx-auto pb-12">
+    <div className="max-w-4xl mx-auto pb-12 relative isolate min-h-[500px]">
+      <AnimatedAnimeBackground anime={selectedAnime ? [selectedAnime] : []} />
+      <div className="relative z-10 px-4">
       <div className="mb-8 text-center">
         <h1 className="text-3xl font-bold text-white mb-2 flex items-center justify-center gap-3">
           <Dices className="text-accent" size={32} /> Surprise Me
@@ -309,6 +312,7 @@ export default function SurpriseMePage() {
           </div>
         </div>
       )}
+          </div>
     </div>
   );
 }
