@@ -71,15 +71,14 @@ export default function AnimatedAnimeBackground({ anime = [] }) {
                backgroundImage: `url("${img}")`,
                transitionDuration: '2000ms',
                opacity: isCurrent ? 0.60 : 0,
-               filter: 'blur(24px)'
+               filter: 'blur(4px)'
              }}
            />
          );
       })}
       
-      {/* Overlays to ensure readability and maintain premium atmosphere */}
-      <div className="absolute inset-0 bg-gradient-to-b from-dark-base/30 via-transparent to-dark-base" />
-      <div className="absolute inset-0 bg-gradient-to-r from-dark-base via-transparent to-dark-base opacity-70" />
+      {/* Light overlays so the art remains completely clear */}
+      <div className="absolute inset-0 bg-gradient-to-b from-dark-base/20 via-transparent to-dark-base" />
       <div className="absolute inset-0 bg-accent/10 mix-blend-overlay" />
     </div>
   );
