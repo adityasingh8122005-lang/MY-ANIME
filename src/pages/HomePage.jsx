@@ -3,7 +3,7 @@ import { Link } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
 import MyAnimePage from './MyAnimePage';
 import AnimatedAnimeBackground from '../components/AnimatedAnimeBackground';
-import { Flame, Loader2 } from 'lucide-react';
+import { Flame, Loader2, Dices } from 'lucide-react';
 
 const TRENDING_QUERY = `
 query {
@@ -99,6 +99,15 @@ export default function HomePage() {
         ))}
       </div>
           </div>
+
+      {/* Floating Surprise Me Button */}
+      <Link 
+        to="/surprise" 
+        className="fixed bottom-8 left-1/2 -translate-x-1/2 z-50 flex items-center gap-2 bg-accent hover:bg-accent/90 text-white px-8 py-3 rounded-full font-bold shadow-lg shadow-accent/50 backdrop-blur-md transition-all hover:scale-105 hover:shadow-xl hover:shadow-accent/70 border border-white/10"
+      >
+        <Dices size={24} />
+        Surprise Me
+      </Link>
     </div>
   );
 }
