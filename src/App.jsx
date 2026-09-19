@@ -163,7 +163,6 @@ function Navigation() {
         {profile?.show_stats_in_navbar !== false && (
           <NavItem to="/statistics" icon={BarChart3} label="Statistics" />
         )}
-        <NavItem to="/surprise-me" icon={Dices} label="Surprise Me" />
       </nav>
       
       <div className="flex items-center gap-2 shrink-0 border-l border-zinc-800 pl-4">
