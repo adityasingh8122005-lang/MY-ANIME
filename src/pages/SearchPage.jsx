@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import AnimatedAnimeBackground from '../components/AnimatedAnimeBackground';
 import { Link } from 'react-router-dom';
 import { Search as SearchIcon, Loader2, UserCircle } from 'lucide-react';
 import { supabase } from '../services/supabase';

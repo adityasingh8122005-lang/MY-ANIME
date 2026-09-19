@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react';
+import AnimatedAnimeBackground from '../components/AnimatedAnimeBackground';
 import { Link } from 'react-router-dom';
 import { getAllUserAnime } from '../services/userService';
 import { Dices, Loader2 } from 'lucide-react';

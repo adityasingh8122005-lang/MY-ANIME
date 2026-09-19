@@ -70,7 +70,7 @@ export default function AnimatedAnimeBackground({ anime = [] }) {
              style={{ 
                backgroundImage: `url("${img}")`,
                transitionDuration: '2000ms',
-               opacity: isCurrent ? 0.35 : 0,
+               opacity: isCurrent ? 0.60 : 0,
                filter: 'blur(24px)'
              }}
            />
