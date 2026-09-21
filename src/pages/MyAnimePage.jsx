@@ -136,6 +136,10 @@ export default function MyAnimePage() {
     }
     if (sortBy === 'title') {
       return a.title.localeCompare(b.title);
+    } else if (sortBy === 'episodes') {
+      const epA = a.totalEpisodes || a.canonEpisodes || 0;
+      const epB = b.totalEpisodes || b.canonEpisodes || 0;
+      return epB - epA;
     } else if (sortBy === 'progress') {
       const progA = a.isFranchise ? (a.totalWatched / (a.totalCanon || 1)) : (a.episodesWatched / (a.canonEpisodes || 1));
       const progB = b.isFranchise ? (b.totalWatched / (b.totalCanon || 1)) : (b.episodesWatched / (b.canonEpisodes || 1));
@@ -184,6 +188,7 @@ export default function MyAnimePage() {
             
             
             <option value="progress">Progress (High to Low)</option>
+            <option value="episodes">Total Episodes (High to Low)</option>
             {customOrder.length > 0 && <option value="custom">Custom Order</option>}
           </select>
           

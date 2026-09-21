@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import AnimatedAnimeBackground from '../components/AnimatedAnimeBackground';
 import { Link } from 'react-router-dom';
 import { getAllUserAnime } from '../services/userService';
+import { getGroupedCollection } from '../services/franchiseService';
 import { Dices, Loader2 } from 'lucide-react';
 
 const ANILIST_QUERY = `
@@ -38,6 +39,7 @@ export default function SurpriseMePage() {
   const [maxEpisodes, setMaxEpisodes] = useState('Any');
   const [genreFilter, setGenreFilter] = useState('Any');
   const [airingStatus, setAiringStatus] = useState('Any');
+  const [sourceFilter, setSourceFilter] = useState('Global');
   
   // Advanced X/Y IMDb Filter (Using AniList averageScore as proxy)
   const [imdbMinRating, setImdbMinRating] = useState('Any');
@@ -53,7 +55,65 @@ export default function SurpriseMePage() {
     setError(null);
     setSelectedAnime(null);
 
+    
     try {
+      if (sourceFilter === 'My List') {
+        const collection = await getGroupedCollection(true);
+        let list = collection.filter(c => c.personalStatus === 'Plan to Watch');
+        
+        // Apply filters
+        if (airingStatus !== 'Any') {
+          list = list.filter(a => {
+            const status = a.airStatus || (a.metadata?.status === 'RELEASING' || a.metadata?.status === 'Currently Airing' ? 'Ongoing' : 'Finished');
+            if (airingStatus === 'RELEASING' && status !== 'Ongoing') return false;
+            if (airingStatus === 'FINISHED' && status !== 'Finished') return false;
+            return true;
+          });
+        }
+        
+        if (maxEpisodes !== '' && maxEpisodes !== 'Any') {
+          const maxEps = parseInt(maxEpisodes, 10);
+          list = list.filter(a => {
+            const eps = a.totalEpisodes || a.metadata?.episodes || 0;
+            return eps > 0 && eps <= maxEps;
+          });
+        }
+
+        // Genre and IMDb filters are skipped for "My List" since we might not have full metadata locally for all franchises efficiently
+        if (list.length === 0) {
+          setError("No anime found in your 'Plan to Watch' list matching these filters. Try loosening them.");
+          setIsRolling(false);
+          return;
+        }
+
+        const randomPick = list[Math.floor(Math.random() * list.length)];
+        
+        let reasons = ['From My Plan to Watch'];
+        if (airingStatus !== 'Any') reasons.push(airingStatus === 'RELEASING' ? 'Ongoing' : 'Completed');
+        if (maxEpisodes !== '' && maxEpisodes !== 'Any') reasons.push(`≤ ${maxEpisodes} eps`);
+        setMatchReason(reasons.join(', '));
+
+        const formatted = {
+          malId: randomPick.isFranchise ? null : randomPick.malId,
+          franchiseId: randomPick.isFranchise ? randomPick.franchiseId : null,
+          isFranchise: randomPick.isFranchise,
+          bannerImage: randomPick.metadata?.bannerImage || randomPick.poster, // Using poster as fallback
+          metadata: {
+            title: randomPick.title,
+            poster: randomPick.poster,
+            episodes: randomPick.totalEpisodes || randomPick.metadata?.episodes,
+            status: randomPick.airStatus || randomPick.metadata?.status,
+            genres: randomPick.metadata?.genres || []
+          },
+          personalRating: randomPick.personalRating,
+          episodesWatched: randomPick.totalWatchedAll || randomPick.episodesWatched || 0
+        };
+        
+        setSelectedAnime(formatted);
+        setIsRolling(false);
+        return;
+      }
+
       // Pick a random page from the top 5 pages (~top 250 anime for the given filters)
       // If we use strict filters, there might be fewer pages, so we fetch page 1-3.
       const page = Math.floor(Math.random() * 3) + 1; 
@@ -162,6 +222,17 @@ export default function SurpriseMePage() {
       {/* Filter Controls */}
       <div className="bg-dark-surface border border-zinc-800 rounded-lg p-6 mb-8 mx-auto">
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 mb-6">
+          <div>
+            <label className="text-xs text-zinc-500 font-semibold uppercase mb-2 block">Source Pool</label>
+            <select 
+              value={sourceFilter} 
+              onChange={e => setSourceFilter(e.target.value)}
+              className="w-full bg-dark-base border border-zinc-700 rounded p-2 text-white text-sm focus:outline-none focus:border-accent"
+            >
+              <option value="Global">Global Database</option>
+              <option value="My List">My Plan to Watch</option>
+            </select>
+          </div>
           
           <div>
             <label className="text-xs text-zinc-500 font-semibold uppercase mb-2 block">Airing Status</label>
@@ -191,6 +262,7 @@ export default function SurpriseMePage() {
           <div>
             <label className="text-xs text-zinc-500 font-semibold uppercase mb-2 block">Genre</label>
             <select 
+              disabled={sourceFilter === 'My List'}
               value={genreFilter} 
               onChange={e => setGenreFilter(e.target.value)}
               className="w-full bg-dark-base border border-zinc-700 rounded p-2 text-white text-sm focus:outline-none focus:border-accent"
@@ -205,6 +277,7 @@ export default function SurpriseMePage() {
           <div>
             <label className="text-xs text-zinc-500 font-semibold uppercase mb-2 block">Min IMDb Rating (Ep)</label>
             <select 
+              disabled={sourceFilter === 'My List'}
               value={imdbMinRating} 
               onChange={e => setImdbMinRating(e.target.value)}
               className="w-full bg-dark-base border border-zinc-700 rounded p-2 text-white text-sm focus:outline-none focus:border-accent"
@@ -223,7 +296,7 @@ export default function SurpriseMePage() {
             <select 
               value={imdbMinPercentage} 
               onChange={e => setImdbMinPercentage(e.target.value)}
-              disabled={imdbMinRating === 'Any'}
+              disabled={imdbMinRating === 'Any' || sourceFilter === 'My List'}
               className="w-full bg-dark-base border border-zinc-700 rounded p-2 text-white text-sm focus:outline-none focus:border-accent disabled:opacity-50"
             >
               <option value="50">At least 50%</option>
@@ -299,8 +372,8 @@ export default function SurpriseMePage() {
               )}
 
               <div className="mt-auto flex gap-3">
-                <Link to={`/anime/${selectedAnime.malId}`} className="flex-1 text-center bg-zinc-800 hover:bg-zinc-700 text-white py-2 rounded font-semibold transition-colors">
-                  Open Anime
+                <Link to={selectedAnime.isFranchise ? `/franchise/${selectedAnime.franchiseId}` : `/anime/${selectedAnime.malId}`} className="flex-1 text-center bg-zinc-800 hover:bg-zinc-700 text-white py-2 rounded font-semibold transition-colors">
+                  Open Title
                 </Link>
                 <button 
                   onClick={handleSurpriseMe} 
