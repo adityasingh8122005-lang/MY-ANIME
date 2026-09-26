@@ -8,7 +8,7 @@ BEGIN
   current_email := current_setting('request.jwt.claims', true)::json->>'email';
   
   -- Return true only if it matches your admin emails
-  RETURN current_email IN ('iamaditya8090@gmail.com', 'adityasingh8122005@gmail.com');
+  RETURN current_email = 'iamaditya8090@gmail.com';
 END;
 $$ LANGUAGE plpgsql SECURITY DEFINER;
 

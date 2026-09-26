@@ -15,7 +15,7 @@ export const AuthProvider = ({ children }) => {
 
   const checkAdmin = (sess) => {
     if (!sess?.user?.email) return false;
-    const adminEmails = ['iamaditya8090@gmail.com', 'adityasingh8122005@gmail.com'];
+    const adminEmails = ['iamaditya8090@gmail.com'];
     return adminEmails.includes(sess.user.email);
   };
 

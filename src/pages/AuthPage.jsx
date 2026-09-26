@@ -18,6 +18,25 @@ export default function AuthPage() {
   useEffect(() => {
     // Check if the URL tells us to default to signup
     const params = new URLSearchParams(location.search);
+    
+    // Parse Supabase email verification errors from hash
+    if (location.hash) {
+      const hashParams = new URLSearchParams(location.hash.substring(1));
+      const hashError = hashParams.get('error_description') || hashParams.get('error');
+      if (hashError) {
+        setError(decodeURIComponent(hashError).replace(/\+/g, ' '));
+        // Clear hash so it doesn't persist on refresh
+        window.history.replaceState(null, '', window.location.pathname + window.location.search);
+      }
+    }
+    
+    // Check for success verification
+    if (params.get('verified') === 'true' && !error) {
+      setSuccess("Email successfully verified! You can now log in.");
+      // Clear param
+      window.history.replaceState(null, '', window.location.pathname);
+    }
+    
     if (params.get('signup') === 'true') {
       setIsSignUp(true);
     }
@@ -38,7 +57,13 @@ export default function AuthPage() {
 
     try {
       if (isSignUp) {
-        const { error } = await supabase.auth.signUp({ email, password });
+        const { error } = await supabase.auth.signUp({ 
+          email, 
+          password,
+          options: {
+            emailRedirectTo: window.location.origin + '/auth?verified=true'
+          }
+        });
         if (error) throw error;
         
         setShowVerificationPopup(true);
