@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react';
 import { useParams, Link } from 'react-router-dom';
 import { supabase } from '../services/supabase';
-import { UserCircle, Calendar, ShieldAlert } from 'lucide-react';
+import { UserCircle, Calendar, ShieldAlert, Tv } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
 
 export default function ProfilePage() {
@@ -11,6 +11,7 @@ export default function ProfilePage() {
   const [collection, setCollection] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
+  const [activeTab, setActiveTab] = useState('All');
 
   useEffect(() => {
     async function loadProfile() {
@@ -89,12 +90,30 @@ export default function ProfilePage() {
           <h1 className="text-3xl font-bold text-white mb-1">@{profile.username}</h1>
           <div className="flex items-center justify-center md:justify-start gap-4 text-zinc-400 text-sm mt-4">
             <span className="flex items-center gap-1"><Calendar size={16} /> Joined {new Date(profile.created_at).toLocaleDateString()}</span>
+            <span className="flex items-center gap-1"><Tv size={16} /> {collection.filter(a => a.personalStatus === 'Completed' || a.personalStatus === 'Watching').length} Watched Anime</span>
           </div>
         </div>
       </div>
 
       {/* Collection Section */}
-      <h2 className="text-xl font-bold text-white mb-4">Anime Collection</h2>
+      
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between mb-4 gap-4">
+        <h2 className="text-xl font-bold text-white">Anime Collection</h2>
+        {collection.length > 0 && (!profile.is_public ? session?.user?.id === profile.id : true) && (
+          <div className="flex overflow-x-auto hide-scrollbar gap-2 pb-1 sm:pb-0">
+            {['All', 'Watching', 'Completed', 'Plan to Watch'].map(tab => (
+              <button
+                key={tab}
+                onClick={() => setActiveTab(tab)}
+                className={`px-3 py-1.5 rounded-full text-xs font-bold whitespace-nowrap transition-colors ${activeTab === tab ? 'bg-accent text-white' : 'bg-dark-surface border border-zinc-800 text-zinc-400 hover:border-zinc-500'}`}
+              >
+                {tab}
+              </button>
+            ))}
+          </div>
+        )}
+      </div>
+
       
       {!profile.is_public && session?.user?.id !== profile.id ? (
         <div className="bg-dark-surface border border-zinc-800 rounded-lg p-12 text-center flex flex-col items-center justify-center text-zinc-500">
@@ -106,9 +125,13 @@ export default function ProfilePage() {
         <div className="bg-dark-surface border border-zinc-800 rounded-lg p-8 text-center text-zinc-500">
           No anime in their collection yet.
         </div>
+      ) : (activeTab !== 'All' && collection.filter(a => a.personalStatus === activeTab).length === 0) ? (
+        <div className="bg-dark-surface border border-zinc-800 rounded-lg p-8 text-center text-zinc-500">
+          No anime in this category.
+        </div>
       ) : (
         <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-4">
-          {collection.map(anime => (
+          {(activeTab === 'All' ? collection : collection.filter(a => a.personalStatus === activeTab)).map(anime => (
             <Link key={anime.malId} to={`/anime/${anime.malId}`} className="group relative rounded-lg overflow-hidden bg-dark-surface border border-zinc-800 hover:border-zinc-500 transition-colors">
               <div className="aspect-[2/3] w-full bg-zinc-800 relative">
                 {anime.metadata?.poster ? (

@@ -126,7 +126,7 @@ export default function SettingsPage() {
                 value={username}
                 onChange={e => setUsername(e.target.value)}
                 className="w-full bg-transparent py-2 px-3 text-white focus:outline-none"
-                placeholder="aditya_07"
+                placeholder="username_123"
               />
             </div>
             <p className="text-xs text-zinc-500 mt-1">Username must be unique.</p>
