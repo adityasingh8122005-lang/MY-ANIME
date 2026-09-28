@@ -4,6 +4,7 @@ import { useAuth } from '../contexts/AuthContext';
 import MyAnimePage from './MyAnimePage';
 import AnimatedAnimeBackground from '../components/AnimatedAnimeBackground';
 import { Flame, Loader2, Dices } from 'lucide-react';
+import Tilt from 'react-parallax-tilt';
 
 const TRENDING_QUERY = `
 query {
@@ -76,7 +77,8 @@ export default function HomePage() {
 
       <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-4">
         {trending.map(anime => (
-          <Link key={anime.idMal} to={`/anime/${anime.idMal}`} className="group relative rounded-lg overflow-hidden bg-dark-surface border border-zinc-800 hover:border-zinc-500 transition-colors">
+          <Tilt key={anime.idMal} tiltMaxAngleX={15} tiltMaxAngleY={15} scale={1.03} transitionSpeed={400} className="rounded-lg h-full">
+          <Link to={`/anime/${anime.idMal}`} className="h-full block group relative rounded-lg overflow-hidden bg-dark-surface border border-zinc-800 hover:border-accent transition-colors hover:shadow-lg hover:shadow-accent/20">
             <div className="aspect-[2/3] w-full bg-zinc-800 relative">
               {anime.coverImage?.large ? (
                 <img src={anime.coverImage.large} alt={anime.title.english || anime.title.romaji} className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300" />
@@ -96,6 +98,7 @@ export default function HomePage() {
               </h3>
             </div>
           </Link>
+        </Tilt>
         ))}
       </div>
           </div>

@@ -3,6 +3,7 @@ import { useSortable } from '@dnd-kit/sortable';
 import { CSS } from '@dnd-kit/utilities';
 import { Link } from 'react-router-dom';
 import { Folder, GripVertical } from 'lucide-react';
+import Tilt from 'react-parallax-tilt';
 import clsx from 'clsx';
 
 export default function SortableAnimeItem({ item, activeTab, isEditingOrder, viewMode }) {
@@ -101,11 +102,21 @@ export default function SortableAnimeItem({ item, activeTab, isEditingOrder, vie
       ref={setNodeRef} 
       style={style} 
       className={clsx(
-        "relative group rounded-lg overflow-hidden bg-dark-surface border flex flex-col h-full transition-colors",
-        isDragging ? "border-accent shadow-lg shadow-accent/20 scale-105 z-50" : "border-zinc-800 hover:border-accent"
+        "relative flex flex-col h-full",
+        isDragging ? "z-50" : ""
       )}
     >
-      <Link to={to} className="flex flex-col h-full pointer-events-auto">
+      <Tilt 
+        tiltMaxAngleX={10} 
+        tiltMaxAngleY={10} 
+        scale={1.02} 
+        transitionSpeed={400} 
+        className={clsx(
+          "flex-1 relative group rounded-lg overflow-hidden bg-dark-surface border flex flex-col h-full transition-all",
+          isDragging ? "border-accent shadow-lg shadow-accent/20 scale-105" : "border-zinc-800 hover:border-accent hover:shadow-lg hover:shadow-accent/20"
+        )}
+      >
+        <Link to={to} className="flex flex-col h-full pointer-events-auto">
         <div className="aspect-[2/3] w-full bg-zinc-900 relative">
           {item.poster ? (
             <img src={item.poster} alt={item.title} className="w-full h-full object-cover group-hover:opacity-80 transition-opacity" loading="lazy" />
@@ -146,6 +157,7 @@ export default function SortableAnimeItem({ item, activeTab, isEditingOrder, vie
           </p>
         </div>
       </Link>
+      </Tilt>
       
       {isEditingOrder && (
         <div 
