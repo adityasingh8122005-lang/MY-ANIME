@@ -13,13 +13,13 @@ export async function getIntelligenceData() {
   let totalEpisodes = 0;
   let totalMinutes = 0;
   let hasKnownDuration = false;
+  let missingDurationCount = 0;
   let ratedCount = 0;
   let ratingSum = 0;
 
   // For Universe & DNA
   const nodes = [];
   const genreCounts = {};
-  const genreRatings = {};
   
   collection.forEach(g => {
     // If it's a franchise, iterate its parts
@@ -40,16 +40,23 @@ export async function getIntelligenceData() {
         ratingSum += a.personalRating;
       }
 
-      // Duration
-      if (watched > 0 && a.metadata?.duration) {
-        const minMatch = a.metadata.duration.match(/(\d+)\s*min/);
-        const hrMatch = a.metadata.duration.match(/(\d+)\s*hr/);
-        let mins = 0;
-        if (hrMatch) mins += parseInt(hrMatch[1], 10) * 60;
-        if (minMatch) mins += parseInt(minMatch[1], 10);
-        if (mins > 0) {
-          totalMinutes += (watched * mins);
-          hasKnownDuration = true;
+      // Duration parsing (strict extraction)
+      if (watched > 0) {
+        if (a.metadata?.duration) {
+          const minMatch = a.metadata.duration.match(/(\d+)\s*min/);
+          const hrMatch = a.metadata.duration.match(/(\d+)\s*hr/);
+          let mins = 0;
+          if (hrMatch) mins += parseInt(hrMatch[1], 10) * 60;
+          if (minMatch) mins += parseInt(minMatch[1], 10);
+          
+          if (mins > 0) {
+            totalMinutes += (watched * mins);
+            hasKnownDuration = true;
+          } else {
+            missingDurationCount += watched;
+          }
+        } else {
+          missingDurationCount += watched;
         }
       }
 
@@ -81,14 +88,18 @@ export async function getIntelligenceData() {
 
   const avgRating = ratedCount > 0 ? (ratingSum / ratedCount).toFixed(1) : 0;
   const watchHours = hasKnownDuration ? (totalMinutes / 60).toFixed(1) : 0;
+  const watchTimeType = missingDurationCount === 0 && hasKnownDuration ? 'Exact Estimate' : hasKnownDuration ? 'Partial Estimate' : 'Unavailable';
 
   // 2. DNA Calculation
   // DNA formula: We weight genres by (Frequency * Average User Rating if available)
   const dnaScores = Object.entries(genreCounts).map(([genre, data]) => {
-    const avgGenreRating = data.ratedCount > 0 ? (data.ratingSum / data.ratedCount) : (avgRating > 0 ? avgRating : 5);
-    // Score = count * (rating / 5) -> rewards highly rated genres slightly more
-    const score = data.count * (avgGenreRating / 5);
-    return { genre, count: data.count, score, avgRating: avgGenreRating };
+    // If genre has ratings, multiplier is (avg/5). e.g., 10/10 -> 2.0x, 5/5 -> 1.0x, 1/10 -> 0.2x.
+    // If no ratings, multiplier is exactly 1.0 so we don't artificially inflate or deflate based on global average.
+    const avgGenreRating = data.ratedCount > 0 ? (data.ratingSum / data.ratedCount) : null;
+    const multiplier = avgGenreRating !== null ? (avgGenreRating / 5) : 1.0;
+    const score = data.count * multiplier;
+    
+    return { genre, count: data.count, score, avgRating: avgGenreRating || 5 };
   }).sort((a, b) => b.score - a.score);
 
   const topGenres = dnaScores.slice(0, 8); // Max 8 axes for DNA radar
@@ -103,7 +114,7 @@ export async function getIntelligenceData() {
   if (dna.length > 0) {
     insights.push(`You watch more ${dna[0].genre} than any other genre.`);
     // Highest rated genre (min 3 entries to qualify)
-    const ratedGenres = dnaScores.filter(g => g.count >= 3).sort((a, b) => b.avgRating - a.avgRating);
+    const ratedGenres = dnaScores.filter(g => g.count >= 3 && g.avgRating !== 5).sort((a, b) => b.avgRating - a.avgRating);
     if (ratedGenres.length > 0 && ratedGenres[0].avgRating > 7) {
        insights.push(`Your highest-rated genre is ${ratedGenres[0].genre} (${ratedGenres[0].avgRating.toFixed(1)}/10).`);
     }
@@ -129,6 +140,7 @@ export async function getIntelligenceData() {
     totalAnime,
     totalEpisodes,
     watchHours,
+    watchTimeType,
     hasKnownDuration,
     avgRating,
     statuses,

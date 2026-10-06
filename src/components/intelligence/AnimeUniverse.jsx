@@ -284,6 +284,7 @@ export default function AnimeUniverse({ nodes }) {
       cancelAnimationFrame(animationFrameId);
       canvas.removeEventListener('mousemove', handleMouseMove);
       canvas.removeEventListener('click', handleClick);
+      canvas.removeEventListener('touchstart', handleTouchStart);
     };
   }, [nodes, dimensions, isReducedMotion, navigate]);
 
@@ -308,7 +309,7 @@ export default function AnimeUniverse({ nodes }) {
          </div>
       </div>
 
-      <canvas ref={canvasRef} className="absolute inset-0 z-0 touch-none block w-full h-full" />
+      <canvas ref={canvasRef} className="absolute inset-0 z-0 touch-none block w-full h-full cursor-grab active:cursor-grabbing" role="img" aria-label={`Interactive Anime Universe visualization showing ${nodes.length} anime clustered by genre`} tabIndex={0} onKeyDown={(e) => { if(e.key==='Enter' && hoveredNode) navigate(`/anime/${hoveredNode.id}`); }} />
       
       {/* Hover Tooltip */}
       {hoveredNode && (

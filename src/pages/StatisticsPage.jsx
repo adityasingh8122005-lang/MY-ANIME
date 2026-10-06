@@ -58,9 +58,9 @@ export default function StatisticsPage() {
             </div>
             <div className="flex flex-col">
                <span className="text-display-l font-bold text-white leading-none flex items-baseline gap-1">
-                 {data.watchHours} <span className="text-h3 text-zinc-500">hrs</span>
+                 {data.watchHours > 0 ? data.watchHours : "—"} <span className="text-h3 text-zinc-500">hrs</span>
                </span>
-               <span className="text-zinc-400 font-medium mt-2">Estimated Watch Time</span>
+               <span className="text-zinc-400 font-medium mt-2">{data.watchTimeType}</span>
             </div>
             <div className="flex flex-col">
                <span className="text-display-l font-bold text-primary leading-none flex items-baseline gap-1">

@@ -59,7 +59,7 @@ export default function AnimeDNA({ dna }) {
       
       {/* Radar SVG */}
       <div className="relative w-[300px] h-[300px] shrink-0">
-         <svg width={size} height={size} className="overflow-visible">
+         <svg width={size} height={size} className="overflow-visible" role="img" aria-label={`Anime DNA Radar Chart showing preferences across ${dna.length} top genres`}>
             {/* Grid Circles */}
             {[0.2, 0.4, 0.6, 0.8, 1].map(r => (
                <circle key={r} cx={center} cy={center} r={radius * r} fill="none" stroke="rgba(255,255,255,0.05)" strokeWidth="1" />
