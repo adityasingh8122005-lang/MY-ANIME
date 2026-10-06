@@ -1,4 +1,8 @@
-import React, { useState, useEffect } from 'react';
+const fs = require('fs');
+// This script will just overwrite MyAnimePage with a complete React implementation.
+// Instead of writing a massive heredoc in bash that gets mangled, I'll write the raw code block and write it to disk.
+
+const code = `import React, { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
 import { getGroupedCollection, autoHealUnknownMetadata, autoHealFranchiseDates, autoSyncStaleData, autoRebuildFranchises } from '../services/franchiseService';
@@ -385,3 +389,6 @@ export default function MyAnimePage() {
     </div>
   );
 }
+`;
+
+fs.writeFileSync('src/pages/MyAnimePage.jsx', code);

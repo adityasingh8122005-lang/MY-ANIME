@@ -10,7 +10,8 @@ import { getEpisodeFillerData, getSingleEpisodeFillerStatus, FILLER_STATUS, getA
 import { getImdbRating } from '../services/imdbApi';
 import { getFranchiseData } from '../services/franchiseApi';
 import { addFranchiseToDb } from '../services/franchiseService';
-import { Loader2, ArrowLeft, ExternalLink, Calendar, History, Trash2, CheckCircle, PlayCircle, List, PauseCircle, XCircle, Plus, Edit2, MessageSquare, Lightbulb, Star } from 'lucide-react';
+import { getCustomCollections, addFranchiseToCustomCollection } from '../services/collectionService';
+import { Loader2, ArrowLeft, ExternalLink, Calendar, History, Trash2, CheckCircle, PlayCircle, List, PauseCircle, XCircle, Plus, Edit2, MessageSquare, Lightbulb, Star, Folder } from 'lucide-react';
 import { Button } from '../components/ui/Button';
 import { Card } from '../components/ui/Card';
 import ChatBox from '../components/ChatBox';
@@ -47,10 +48,13 @@ export default function AnimeDetailsPage() {
   const [history, setHistory] = useState([]);
   const [isLoading, setIsLoading] = useState(true);
   const [isAddingFranchise, setIsAddingFranchise] = useState(false);
+  const [customCollections, setCustomCollections] = useState([]);
+  const [showColDropdown, setShowColDropdown] = useState(false);
   const [error, setError] = useState(null);
   const [activeTab, setActiveTab] = useState('episodes');
   const [banner, setBanner] = useState(null);
   useEffect(() => {
+    getCustomCollections().then(setCustomCollections).catch(console.error);
     if (!id) return;
     async function fetchBanner() {
       try {
