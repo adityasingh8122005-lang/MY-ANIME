@@ -1,221 +1,156 @@
-import { useState, useEffect } from 'react';
-import { getGroupedCollection } from '../services/franchiseService';
-import { getWatchHistory } from '../services/userService';
-import { db } from '../services/db';
-import { BarChart3, Clock, Tv, Calendar, Loader2 } from 'lucide-react';
+import React, { useEffect, useState } from 'react';
+import { Loader2, Tv, Clock, Calendar, BarChart3, ChevronRight } from 'lucide-react';
+import { getIntelligenceData } from '../services/intelligence/intelligenceService';
+import AnimeUniverse from '../components/intelligence/AnimeUniverse';
+import AnimeDNA from '../components/intelligence/AnimeDNA';
+import clsx from 'clsx';
 
 export default function StatisticsPage() {
-  const [stats, setStats] = useState(null);
+  const [data, setData] = useState(null);
   const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
-    async function loadStats() {
-      setIsLoading(true);
+    async function load() {
       try {
-        const groupedCollection = await getGroupedCollection();
-        const watchHistory = await db.watchHistory.toArray();
-
-        // 1. Collection Breakdown (using grouped franchises)
-        const collectionStats = {
-          'Watching': 0, 'Plan to Watch': 0, 'Completed': 0, 'On Hold': 0, 'Dropped': 0, total: 0
-        };
-        groupedCollection.forEach(a => {
-          if (collectionStats[a.personalStatus] !== undefined) {
-            collectionStats[a.personalStatus]++;
-          }
-          collectionStats.total++;
-        });
-
-        // 2. Global Totals
-        let totalEpisodesWatched = 0;
-        let totalCanonWatched = 0;
-        let totalFillerWatched = 0;
-        groupedCollection.forEach(a => {
-          const watchedAll = a.totalWatchedAll ?? a.episodesWatched ?? 0;
-          const watchedCanon = a.totalWatched ?? a.episodesWatched ?? 0;
-          totalEpisodesWatched += watchedAll;
-          totalCanonWatched += watchedCanon;
-          totalFillerWatched += Math.max(0, watchedAll - watchedCanon);
-        });
-
-        const totalWatchingSessions = watchHistory.length;
-
-        // Estimated Watch Time
-        // The Jikan duration string looks like "24 min per ep", "1 hr 13 min", "Unknown"
-        // We only use the explicitly defined minutes. We do NOT fabricate missing durations.
-        let totalMinutes = 0;
-        let hasKnownDuration = false;
-        groupedCollection.forEach(g => {
-          // If it's a franchise, we iterate its seasons to get duration
-          const items = g.isFranchise ? g.seasons : [g];
-          items.forEach(a => {
-            const watched = a.episodesWatched || 0;
-            if (watched > 0 && a.metadata?.duration) {
-              const minMatch = a.metadata.duration.match(/(\d+)\s*min/);
-              const hrMatch = a.metadata.duration.match(/(\d+)\s*hr/);
-              let mins = 0;
-              if (hrMatch) mins += parseInt(hrMatch[1], 10) * 60;
-              if (minMatch) mins += parseInt(minMatch[1], 10);
-              
-              if (mins > 0) {
-                totalMinutes += (watched * mins);
-                hasKnownDuration = true;
-              }
-            }
-          });
-        });
-        
-        const estWatchHours = hasKnownDuration ? (totalMinutes / 60).toFixed(1) : "Unavailable";
-
-        // 3. Watch History Graph (Last 7 days of activity)
-        // Group history by date
-        const historyByDate = {};
-        watchHistory.forEach(h => {
-          if (!historyByDate[h.date]) historyByDate[h.date] = 0;
-          historyByDate[h.date] += h.episodesWatched;
-        });
-
-        // Sort dates chronologically
-        const sortedDates = Object.keys(historyByDate).sort();
-        // Take the last 14 active days for the chart
-        const recentDates = sortedDates.slice(-14);
-        
-        const chartData = recentDates.map(date => ({
-          date,
-          episodes: historyByDate[date]
-        }));
-        
-        const maxChartEps = chartData.length > 0 ? Math.max(...chartData.map(d => d.episodes)) : 0;
-
-        setStats({
-          collectionStats,
-          totalEpisodesWatched,
-          totalCanonWatched,
-          totalFillerWatched,
-          totalWatchingSessions,
-          estWatchHours,
-          chartData,
-          maxChartEps
-        });
+        setIsLoading(true);
+        const intData = await getIntelligenceData();
+        setData(intData);
       } catch (err) {
         console.error(err);
       } finally {
         setIsLoading(false);
       }
     }
-    loadStats();
+    load();
   }, []);
 
   if (isLoading) {
     return (
-      <div className="flex justify-center items-center h-64">
-        <Loader2 size={32} className="animate-spin text-accent" />
+      <div className="flex justify-center items-center h-[60vh]">
+        <Loader2 size={48} className="animate-spin text-primary" />
       </div>
     );
   }
 
-  if (!stats || stats.collectionStats.total === 0) {
+  if (!data || data.totalAnime === 0) {
     return (
-      <div className="max-w-4xl mx-auto py-20 text-center border border-zinc-800 bg-dark-surface rounded-lg">
-        <BarChart3 size={48} className="mx-auto text-zinc-600 mb-4" />
-        <h1 className="text-2xl font-bold text-white mb-2">Not Enough Data</h1>
-        <p className="text-zinc-400">Add some anime to your collection and record watch sessions to generate statistics.</p>
+      <div className="max-w-4xl mx-auto py-32 text-center">
+        <h1 className="text-display-m font-bold text-white mb-4">Not enough data yet.</h1>
+        <p className="text-zinc-400 text-body-l">Keep building your collection and your statistics will appear here.</p>
       </div>
     );
   }
 
   return (
-    <div className="max-w-6xl mx-auto space-y-8 pb-12">
-      <h1 className="text-2xl font-bold text-white flex items-center gap-2 mb-6">
-        <BarChart3 className="text-accent" /> Personal Statistics
-      </h1>
+    <div className="max-w-6xl mx-auto space-y-16 pb-24 pt-8">
+      
+      {/* 1. Statistics Hero */}
+      <section className="text-center md:text-left">
+         <h2 className="text-zinc-500 font-bold uppercase tracking-widest text-sm mb-4">Your Anime Journey</h2>
+         <div className="flex flex-wrap gap-x-12 gap-y-8 items-baseline justify-center md:justify-start">
+            <div className="flex flex-col">
+               <span className="text-display-l font-bold text-white leading-none">{data.totalAnime}</span>
+               <span className="text-zinc-400 font-medium mt-2">Anime</span>
+            </div>
+            <div className="flex flex-col">
+               <span className="text-display-l font-bold text-white leading-none">{data.totalEpisodes}</span>
+               <span className="text-zinc-400 font-medium mt-2">Episodes</span>
+            </div>
+            <div className="flex flex-col">
+               <span className="text-display-l font-bold text-white leading-none flex items-baseline gap-1">
+                 {data.watchHours} <span className="text-h3 text-zinc-500">hrs</span>
+               </span>
+               <span className="text-zinc-400 font-medium mt-2">Estimated Watch Time</span>
+            </div>
+            <div className="flex flex-col">
+               <span className="text-display-l font-bold text-primary leading-none flex items-baseline gap-1">
+                 {data.avgRating} <span className="text-h3 text-zinc-500">/10</span>
+               </span>
+               <span className="text-zinc-400 font-medium mt-2">Average Rating</span>
+            </div>
+         </div>
+      </section>
 
-      {/* Top Stats Row */}
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-        <div className="bg-dark-surface border border-zinc-800 rounded-lg p-6">
-          <div className="text-zinc-500 text-xs font-bold uppercase tracking-wider mb-2 flex items-center gap-2">
-            <Tv size={14} /> Total Anime
-          </div>
-          <div className="text-3xl font-bold text-white">{stats.collectionStats.total}</div>
-        </div>
-        <div className="bg-dark-surface border border-zinc-800 rounded-lg p-6">
-          <div className="text-zinc-500 text-xs font-bold uppercase tracking-wider mb-2 flex items-center gap-2">
-            <Tv size={14} /> Total Episodes
-          </div>
-          <div className="text-3xl font-bold text-white mb-2">{stats.totalEpisodesWatched}</div>
-          <div className="flex gap-4 text-xs">
-            <div className="text-zinc-400">Canon: <span className="text-zinc-200 font-bold">{stats.totalCanonWatched}</span></div>
-            <div className="text-zinc-400">Filler: <span className="text-zinc-200 font-bold">{stats.totalFillerWatched}</span></div>
-          </div>
-        </div>
-        <div className="bg-dark-surface border border-zinc-800 rounded-lg p-6">
-          <div className="text-zinc-500 text-xs font-bold uppercase tracking-wider mb-2 flex items-center gap-2">
-            <Clock size={14} /> Watch Time (Est)
-          </div>
-          <div className="text-3xl font-bold text-white">
-            {stats.estWatchHours} {stats.estWatchHours !== "Unavailable" && <span className="text-lg text-zinc-500 font-normal">hrs</span>}
-          </div>
-        </div>
-        <div className="bg-dark-surface border border-zinc-800 rounded-lg p-6">
-          <div className="text-zinc-500 text-xs font-bold uppercase tracking-wider mb-2 flex items-center gap-2">
-            <Calendar size={14} /> Watch Sessions
-          </div>
-          <div className="text-3xl font-bold text-white">{stats.totalWatchingSessions}</div>
-        </div>
+      {/* 2. Anime Universe */}
+      <section>
+         <h2 className="text-h3 font-bold text-white mb-6">Anime Universe</h2>
+         <AnimeUniverse nodes={data.nodes} />
+      </section>
+
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+         {/* 3. Anime DNA */}
+         <section>
+            <h2 className="text-h3 font-bold text-white mb-6">Anime DNA</h2>
+            <AnimeDNA dna={data.dna} />
+         </section>
+         
+         {/* 4. Insights & Status */}
+         <section className="flex flex-col gap-8">
+            <div className="bg-surface-1 rounded-[24px] border border-white/5 p-8 shadow-depth-4">
+               <h3 className="text-h4 font-bold text-white mb-6 flex items-center gap-2">
+                 <BarChart3 className="text-primary" size={20} /> Your Insights
+               </h3>
+               <ul className="space-y-4">
+                  {data.insights.map((insight, i) => (
+                     <li key={i} className="flex gap-3 text-body-m text-zinc-300 items-start">
+                        <ChevronRight className="text-primary shrink-0 mt-0.5" size={18} />
+                        <span>{insight}</span>
+                     </li>
+                  ))}
+               </ul>
+            </div>
+
+            <div className="bg-surface-1 rounded-[24px] border border-white/5 p-8 shadow-depth-4 flex-1">
+               <h3 className="text-h4 font-bold text-white mb-6 flex items-center gap-2">
+                 <Tv className="text-primary" size={20} /> Collection Status
+               </h3>
+               <div className="space-y-4">
+                  {Object.entries(data.statuses).filter(([_, count]) => count > 0).map(([status, count]) => (
+                     <div key={status} className="flex justify-between items-center group">
+                        <span className="text-zinc-400 group-hover:text-white transition-colors">{status}</span>
+                        <div className="flex items-center gap-4">
+                           <div className="w-32 h-1.5 bg-surface-3 rounded-full overflow-hidden hidden sm:block">
+                              <div 
+                                className={clsx("h-full rounded-full transition-all duration-1000", status === 'Completed' ? 'bg-success' : status === 'Watching' ? 'bg-warning' : 'bg-primary')} 
+                                style={{ width: `${(count / data.totalAnime) * 100}%` }}
+                              />
+                           </div>
+                           <span className="font-bold text-white w-8 text-right">{count}</span>
+                        </div>
+                     </div>
+                  ))}
+               </div>
+            </div>
+         </section>
       </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
-        
-        {/* Collection Breakdown */}
-        <div className="col-span-1 bg-dark-surface border border-zinc-800 rounded-lg p-6 flex flex-col">
-          <h2 className="text-lg font-semibold text-white mb-6 border-b border-zinc-800 pb-2">Collection</h2>
-          <div className="space-y-4 flex-1">
-            {['Watching', 'Plan to Watch', 'Completed', 'On Hold', 'Dropped'].map(status => (
-              <div key={status} className="flex justify-between items-center">
-                <span className="text-zinc-400">{status}</span>
-                <span className="font-bold text-white">{stats.collectionStats[status]}</span>
-              </div>
-            ))}
-          </div>
-        </div>
-
-        {/* Watch History Graph */}
-        <div className="col-span-1 md:col-span-2 bg-dark-surface border border-zinc-800 rounded-lg p-6">
-          <h2 className="text-lg font-semibold text-white mb-6 border-b border-zinc-800 pb-2">Recent Watch History</h2>
-          
-          {stats.chartData.length === 0 ? (
-            <div className="h-48 flex items-center justify-center text-zinc-500">
-              No recent watch sessions recorded.
-            </div>
-          ) : (
-            <div className="h-48 flex items-end gap-2 md:gap-4 pt-4">
-              {stats.chartData.map((data, i) => {
-                const heightPercentage = Math.max(5, (data.episodes / stats.maxChartEps) * 100);
-                return (
-                  <div key={i} className="flex-1 flex flex-col justify-end items-center group relative">
-                    {/* Tooltip */}
-                    <div className="absolute -top-10 opacity-0 group-hover:opacity-100 transition-opacity bg-dark-elevated border border-zinc-700 text-white text-xs py-1 px-2 rounded whitespace-nowrap z-10 pointer-events-none">
-                      {data.date}: {data.episodes} eps
-                    </div>
-                    {/* Bar */}
-                    <div 
-                      className="w-full bg-accent/80 hover:bg-accent rounded-t transition-all"
-                      style={{ height: `${heightPercentage}%` }}
-                    />
-                    {/* Label */}
-                    <div className="text-micro text-zinc-500 mt-2 truncate max-w-full hidden md:block">
-                      {data.date.substring(5)} {/* MM-DD */}
-                    </div>
-                  </div>
-                );
-              })}
-            </div>
-          )}
-        </div>
-
-      </div>
-
-
+      {/* 5. Watch Activity Graph */}
+      <section>
+         <h2 className="text-h3 font-bold text-white mb-6">Recent Watch Activity</h2>
+         <div className="bg-surface-1 rounded-[24px] border border-white/5 p-8 shadow-depth-4 h-64 flex items-end gap-2 sm:gap-4 group">
+            {data.chartData.length === 0 ? (
+               <div className="w-full text-center text-zinc-500 mb-20">No recent watch sessions recorded.</div>
+            ) : (
+               data.chartData.map((d, i) => {
+                  const height = Math.max(2, (d.episodes / data.maxChartEps) * 100);
+                  return (
+                     <div key={i} className="flex-1 flex flex-col justify-end items-center relative group/bar h-full">
+                        <div className="absolute -top-12 opacity-0 group-hover/bar:opacity-100 transition-opacity bg-surface-3 border border-white/10 text-white text-xs py-1.5 px-3 rounded-lg shadow-depth-2 whitespace-nowrap z-10 pointer-events-none">
+                           <strong className="text-primary">{d.episodes}</strong> eps on {d.date}
+                        </div>
+                        <div 
+                           className="w-full bg-primary/40 hover:bg-primary rounded-t-sm transition-all duration-300"
+                           style={{ height: `${height}%` }}
+                        />
+                        <div className="text-micro text-zinc-600 mt-3 truncate w-full text-center hidden sm:block">
+                           {d.date.substring(5)}
+                        </div>
+                     </div>
+                  );
+               })
+            )}
+         </div>
+      </section>
 
     </div>
   );
