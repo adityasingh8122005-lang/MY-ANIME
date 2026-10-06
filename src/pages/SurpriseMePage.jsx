@@ -338,7 +338,7 @@ export default function SurpriseMePage() {
                   <div className="w-full h-full flex items-center justify-center text-zinc-600">No Image</div>
                 )}
                 {selectedAnime.metadata?.status && (
-                  <div className="absolute top-2 right-2 bg-dark-base/90 backdrop-blur-sm text-[10px] font-bold px-2 py-1 rounded text-white border border-zinc-700">
+                  <div className="absolute top-2 right-2 bg-dark-base/90 backdrop-blur-sm text-micro font-bold px-2 py-1 rounded text-white border border-zinc-700">
                     {selectedAnime.metadata.status === 'RELEASING' ? 'ONGOING' : 'COMPLETED'}
                   </div>
                 )}
@@ -347,7 +347,7 @@ export default function SurpriseMePage() {
             
             <div className="flex flex-col flex-1">
               <div className="mb-2">
-                <span className="text-[10px] font-bold uppercase tracking-wider text-accent bg-accent/10 px-2 py-1 rounded border border-accent/20">
+                <span className="text-micro font-bold uppercase tracking-wider text-accent bg-accent/10 px-2 py-1 rounded border border-accent/20">
                   Matched filters: {matchReason}
                 </span>
               </div>

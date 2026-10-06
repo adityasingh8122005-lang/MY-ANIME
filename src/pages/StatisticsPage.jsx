@@ -203,7 +203,7 @@ export default function StatisticsPage() {
                       style={{ height: `${heightPercentage}%` }}
                     />
                     {/* Label */}
-                    <div className="text-[10px] text-zinc-500 mt-2 truncate max-w-full hidden md:block">
+                    <div className="text-micro text-zinc-500 mt-2 truncate max-w-full hidden md:block">
                       {data.date.substring(5)} {/* MM-DD */}
                     </div>
                   </div>

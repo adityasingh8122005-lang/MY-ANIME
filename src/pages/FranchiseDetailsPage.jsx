@@ -71,7 +71,7 @@ export default function FranchiseDetailsPage() {
         <img src={franchise.poster} alt={franchise.franchiseName} className="w-32 h-48 object-cover rounded shadow-lg" />
         <div className="flex-1">
           <div className="flex items-center gap-2 mb-2">
-            <span className="text-[10px] font-bold uppercase tracking-wider text-accent bg-accent/10 px-2 py-1 rounded border border-accent/20 flex items-center gap-1">
+            <span className="text-micro font-bold uppercase tracking-wider text-accent bg-accent/10 px-2 py-1 rounded border border-accent/20 flex items-center gap-1">
               <Folder size={10} /> FRANCHISE
             </span>
           </div>

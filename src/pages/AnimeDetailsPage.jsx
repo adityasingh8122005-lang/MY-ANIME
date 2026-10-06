@@ -286,8 +286,8 @@ export default function AnimeDetailsPage() {
                 <div>
                   <label className="text-xs text-zinc-500 font-semibold uppercase mb-1 flex justify-between">
                     <span>Progress</span>
-                    {isCaughtUp && <span className="text-accent text-[10px]">CAUGHT UP</span>}
-                    {isFinished && <span className="text-green-500 text-[10px]">COMPLETED</span>}
+                    {isCaughtUp && <span className="text-accent text-micro">CAUGHT UP</span>}
+                    {isFinished && <span className="text-green-500 text-micro">COMPLETED</span>}
                   </label>
                   <div className="flex items-center gap-3">
                     <div className="flex items-center gap-2">
@@ -418,21 +418,21 @@ export default function AnimeDetailsPage() {
               <div className="bg-dark-surface border border-zinc-800 rounded-lg p-4 flex gap-4 text-center divide-x divide-zinc-800">
                 <div className="flex-1 flex flex-col items-center">
                    <span className="text-2xl font-bold text-green-400">{fillerStats.canon}</span>
-                   <span className="text-[10px] text-zinc-500 uppercase font-bold mt-1 tracking-wider">Canon</span>
+                   <span className="text-micro text-zinc-500 uppercase font-bold mt-1 tracking-wider">Canon</span>
                 </div>
                 {fillerStats.mixed > 0 && (
                   <div className="flex-1 flex flex-col items-center">
                      <span className="text-2xl font-bold text-yellow-400">{fillerStats.mixed}</span>
-                     <span className="text-[10px] text-zinc-500 uppercase font-bold mt-1 tracking-wider">Mixed</span>
+                     <span className="text-micro text-zinc-500 uppercase font-bold mt-1 tracking-wider">Mixed</span>
                   </div>
                 )}
                 <div className="flex-1 flex flex-col items-center">
                    <span className="text-2xl font-bold text-red-400">{fillerStats.filler}</span>
-                   <span className="text-[10px] text-zinc-500 uppercase font-bold mt-1 tracking-wider">Filler</span>
+                   <span className="text-micro text-zinc-500 uppercase font-bold mt-1 tracking-wider">Filler</span>
                 </div>
                 <div className="flex-1 flex flex-col items-center bg-zinc-900/50 rounded -my-2 py-2">
                    <span className="text-2xl font-bold text-white">{fillerStats.fillerPercentage}%</span>
-                   <span className="text-[10px] text-zinc-500 uppercase font-bold mt-1 tracking-wider">Filler %</span>
+                   <span className="text-micro text-zinc-500 uppercase font-bold mt-1 tracking-wider">Filler %</span>
                 </div>
               </div>
             </div>
@@ -477,7 +477,7 @@ export default function AnimeDetailsPage() {
                       <button 
                         key={filter}
                         onClick={() => setEpisodeFilter(filter)}
-                        className={`text-[10px] sm:text-xs px-2 py-1 rounded border transition-colors \${episodeFilter === filter ? 'bg-accent/20 border-accent text-accent' : 'bg-dark-surface border-zinc-700 text-zinc-400 hover:text-white'}`}
+                        className={`text-micro sm:text-xs px-2 py-1 rounded border transition-colors \${episodeFilter === filter ? 'bg-accent/20 border-accent text-accent' : 'bg-dark-surface border-zinc-700 text-zinc-400 hover:text-white'}`}
                       >
                         {filter}
                       </button>
@@ -505,7 +505,7 @@ export default function AnimeDetailsPage() {
                           <span className="text-zinc-500 font-mono w-10 shrink-0">E{ep.mal_id}</span>
                           <span className="text-white font-medium truncate" title={ep.title || `Episode ${ep.mal_id}`}>{ep.title || `Episode ${ep.mal_id}`}</span>
                         </div>
-                        <span className={`text-[10px] font-bold uppercase px-2 py-1 rounded shrink-0 self-start sm:self-auto \${
+                        <span className={`text-micro font-bold uppercase px-2 py-1 rounded shrink-0 self-start sm:self-auto \${
                           ep.fillerStatus === FILLER_STATUS.FILLER ? 'bg-red-500/10 text-red-400 border border-red-500/20' :
                           ep.fillerStatus === FILLER_STATUS.CANON ? 'bg-green-500/10 text-green-400 border border-green-500/20' :
                           ep.fillerStatus === FILLER_STATUS.MIXED ? 'bg-yellow-500/10 text-yellow-400 border border-yellow-500/20' :

@@ -143,11 +143,11 @@ export default function ProfilePage() {
                 )}
                 
                 <div className="absolute top-2 left-2 right-2 flex justify-between">
-                  <div className="bg-dark-base/90 backdrop-blur-sm px-2 py-1 rounded text-[10px] font-bold text-white border border-zinc-700">
+                  <div className="bg-dark-base/90 backdrop-blur-sm px-2 py-1 rounded text-micro font-bold text-white border border-zinc-700">
                     {anime.personalStatus}
                   </div>
                   {anime.personalRating && (
-                    <div className="bg-dark-base/90 backdrop-blur-sm px-2 py-1 rounded text-[10px] font-bold text-accent border border-zinc-700 flex items-center gap-1">
+                    <div className="bg-dark-base/90 backdrop-blur-sm px-2 py-1 rounded text-micro font-bold text-accent border border-zinc-700 flex items-center gap-1">
                       ⭐ {anime.personalRating}
                     </div>
                   )}

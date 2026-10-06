@@ -176,14 +176,14 @@ export default function AdminPanelPage() {
 
   if (loading) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-[#09090b]">
+      <div className="min-h-screen flex items-center justify-center bg-void">
         <div className="animate-spin w-8 h-8 border-4 border-red-500 border-t-transparent rounded-full" />
       </div>
     );
   }
 
   return (
-    <div className="min-h-screen bg-[#09090b] text-white">
+    <div className="min-h-screen bg-void text-white">
       {/* Admin Navbar */}
       <div className="border-b border-red-900/30 bg-red-950/10 sticky top-0 z-50">
         <div className="max-w-7xl mx-auto px-4 h-16 flex items-center justify-between">

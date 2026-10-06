@@ -42,7 +42,7 @@ export default function SortableAnimeItem({ item, activeTab, isEditingOrder, vie
             {item.poster ? (
               <img src={item.poster} alt={item.title} className="w-full h-full object-cover group-hover:opacity-80 transition-opacity" loading="lazy" />
             ) : (
-              <div className="w-full h-full flex items-center justify-center text-[10px] text-zinc-600">No Image</div>
+              <div className="w-full h-full flex items-center justify-center text-micro text-zinc-600">No Image</div>
             )}
             {(item.totalCanon > 0 || item.canonEpisodes > 0) && (
               <div className="absolute bottom-0 left-0 right-0 h-1 bg-zinc-800 z-10">
@@ -77,7 +77,7 @@ export default function SortableAnimeItem({ item, activeTab, isEditingOrder, vie
             <div className="text-xs font-medium text-zinc-300">
               {item.totalWatchedAll ?? item.episodesWatched ?? 0} / {item.totalEpisodes ?? item.canonEpisodes ?? '?'}
             </div>
-            <div className="text-[10px] text-zinc-600 mt-0.5">Eps</div>
+            <div className="text-micro text-zinc-600 mt-0.5">Eps</div>
           </div>
         </Link>
 
@@ -125,11 +125,11 @@ export default function SortableAnimeItem({ item, activeTab, isEditingOrder, vie
           )}
           
           {isFranchise ? (
-            <div className="absolute top-2 right-2 bg-accent/90 backdrop-blur-sm text-[10px] font-bold px-2 py-1 rounded text-white shadow flex items-center justify-center z-10">
+            <div className="absolute top-2 right-2 bg-accent/90 backdrop-blur-sm text-micro font-bold px-2 py-1 rounded text-white shadow flex items-center justify-center z-10">
               <Folder size={14} />
             </div>
           ) : (
-            <div className="absolute top-2 right-2 bg-dark-base/90 backdrop-blur-sm text-[10px] font-bold px-2 py-1 rounded text-white border border-zinc-700 z-10">
+            <div className="absolute top-2 right-2 bg-dark-base/90 backdrop-blur-sm text-micro font-bold px-2 py-1 rounded text-white border border-zinc-700 z-10">
               {item.personalStatus}
             </div>
           )}
@@ -147,7 +147,7 @@ export default function SortableAnimeItem({ item, activeTab, isEditingOrder, vie
           <h3 className="font-medium text-xs text-zinc-100 line-clamp-2" title={item.title}>
             {item.title}
           </h3>
-          <p className="text-[10px] text-zinc-500 mt-auto pt-2 flex justify-between items-center">
+          <p className="text-micro text-zinc-500 mt-auto pt-2 flex justify-between items-center">
             <span>{item.totalWatchedAll ?? item.episodesWatched ?? 0} / {item.totalEpisodes ?? item.canonEpisodes ?? '?'} Eps</span>
             {(activeTab === 'Completed' || activeTab === 'Plan to Watch') && item.airStatus && (
               <span className={clsx(item.airStatus === 'Ongoing' ? 'text-green-500' : 'text-zinc-600')}>

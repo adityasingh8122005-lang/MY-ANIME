@@ -16,11 +16,11 @@ export function Button({
   const baseStyles = "inline-flex items-center justify-center font-bold rounded-md transition-normal focus-visible-ring disabled:opacity-50 disabled:pointer-events-none select-none min-h-[44px] md:min-h-0";
   
   const variants = {
-    primary: "bg-[#8B5CF6] hover:bg-[#A78BFA] text-white shadow-depth-1 hover:shadow-depth-2 active:bg-[#7C3AED]",
+    primary: "bg-primary hover:bg-primary-hover text-white shadow-depth-1 hover:shadow-depth-2 active:bg-primary-dark",
     secondary: "bg-surface-2 hover:bg-surface-3 text-zinc-100 border border-zinc-800 hover:border-zinc-700 active:bg-surface-1",
     ghost: "bg-transparent hover:bg-white/5 text-zinc-300 hover:text-white",
     icon: "bg-surface-2 hover:bg-surface-3 text-zinc-300 hover:text-white border border-zinc-800 rounded-lg",
-    premium: "bg-gradient-to-r from-[#8B5CF6] to-[#6366F1] hover:from-[#A78BFA] hover:to-[#8B5CF6] text-white shadow-depth-2 hover:shadow-depth-3 border border-white/10 relative overflow-hidden"
+    premium: "bg-gradient-to-r from-primary to-secondary hover:from-primary-hover hover:to-primary text-white shadow-depth-2 hover:shadow-depth-3 border border-white/10 relative overflow-hidden"
   };
 
   const sizes = {

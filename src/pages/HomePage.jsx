@@ -87,7 +87,7 @@ export default function HomePage() {
               )}
               
               {anime.status && (
-                <div className="absolute top-2 left-2 bg-dark-base/90 backdrop-blur-sm px-2 py-1 rounded text-[10px] font-bold text-white border border-zinc-700">
+                <div className="absolute top-2 left-2 bg-dark-base/90 backdrop-blur-sm px-2 py-1 rounded text-micro font-bold text-white border border-zinc-700">
                   {anime.status === 'RELEASING' ? 'ONGOING' : 'COMPLETED'}
                 </div>
               )}
