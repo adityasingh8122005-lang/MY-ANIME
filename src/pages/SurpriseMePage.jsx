@@ -1,392 +1,265 @@
-import { useState, useEffect } from 'react';
-import AnimatedAnimeBackground from '../components/AnimatedAnimeBackground';
-import { Link } from 'react-router-dom';
-import { getAllUserAnime } from '../services/userService';
-import { getGroupedCollection } from '../services/franchiseService';
-import { Dices, Loader2 } from 'lucide-react';
-
-const ANILIST_QUERY = `
-query ($page: Int, $genre: String, $format: MediaFormat, $status: MediaStatus) {
-  Page(page: $page, perPage: 50) {
-    media(type: ANIME, genre: $genre, format: $format, status: $status, sort: SCORE_DESC, isAdult: false) {
-      idMal
-      title { romaji english }
-      coverImage { large }
-      bannerImage
-      episodes
-      status
-      genres
-      averageScore
-      relations {
-        edges {
-          relationType
-        }
-      }
-    }
-  }
-}
-`;
-
-const ALL_GENRES = [
-  "Action", "Adventure", "Comedy", "Drama", "Fantasy", "Horror", "Mahou Shoujo", 
-  "Mecha", "Music", "Mystery", "Psychological", "Romance", "Sci-Fi", "Slice of Life", "Sports", "Supernatural", "Thriller"
-];
+import React, { useState, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
+import { Loader2, Sparkles, Heart, Compass, Plus, ArrowRight, Dices, RefreshCw } from 'lucide-react';
+import { Button } from '../components/ui/Button';
+import { generateRecommendation } from '../services/recommendation/recommendationService';
+import { getFranchiseData } from '../services/franchiseApi';
+import { addFranchiseToDb } from '../services/franchiseService';
+import { getUserAnime } from '../services/userService';
 
 export default function SurpriseMePage() {
-  const [isRolling, setIsRolling] = useState(false);
-  
-  // Filters
-  const [maxEpisodes, setMaxEpisodes] = useState('Any');
-  const [genreFilter, setGenreFilter] = useState('Any');
-  const [airingStatus, setAiringStatus] = useState('Any');
-  const [sourceFilter, setSourceFilter] = useState('Global');
-  
-  // Advanced X/Y IMDb Filter (Using AniList averageScore as proxy)
-  const [imdbMinRating, setImdbMinRating] = useState('Any');
-  const [imdbMinPercentage, setImdbMinPercentage] = useState('70');
-  
-  // Result
-  const [selectedAnime, setSelectedAnime] = useState(null);
-  const [matchReason, setMatchReason] = useState('');
+  const navigate = useNavigate();
+  const [mode, setMode] = useState(null);
+  const [isGenerating, setIsGenerating] = useState(false);
+  const [result, setResult] = useState(null);
   const [error, setError] = useState(null);
+  const [isAdding, setIsAdding] = useState(false);
+  const [addSuccess, setAddSuccess] = useState(false);
+  const [hasCollection, setHasCollection] = useState(false);
 
-  const handleSurpriseMe = async () => {
-    setIsRolling(true);
+  // Check if they have anything in collection
+  useEffect(() => {
+    const checkCollection = async () => {
+       try {
+          const mod = await import('../services/intelligence/intelligenceService');
+          const int = await mod.getIntelligenceData();
+          setHasCollection(int.totalAnime > 0);
+       } catch (e) {
+          console.error(e);
+       }
+    };
+    checkCollection();
+  }, []);
+
+  const handleDiscover = async (selectedMode) => {
+    setMode(selectedMode);
+    setIsGenerating(true);
     setError(null);
-    setSelectedAnime(null);
+    setResult(null);
+    setAddSuccess(false);
 
-    
     try {
-      if (sourceFilter === 'My List') {
-        const collection = await getGroupedCollection(true);
-        let list = collection.filter(c => c.personalStatus === 'Plan to Watch');
-        
-        // Apply filters
-        if (airingStatus !== 'Any') {
-          list = list.filter(a => {
-            const status = a.airStatus || (a.metadata?.status === 'RELEASING' || a.metadata?.status === 'Currently Airing' ? 'Ongoing' : 'Finished');
-            if (airingStatus === 'RELEASING' && status !== 'Ongoing') return false;
-            if (airingStatus === 'FINISHED' && status !== 'Finished') return false;
-            return true;
-          });
-        }
-        
-        if (maxEpisodes !== '' && maxEpisodes !== 'Any') {
-          const maxEps = parseInt(maxEpisodes, 10);
-          list = list.filter(a => {
-            const eps = a.totalEpisodes || a.metadata?.episodes || 0;
-            return eps > 0 && eps <= maxEps;
-          });
-        }
-
-        // Genre and IMDb filters are skipped for "My List" since we might not have full metadata locally for all franchises efficiently
-        if (list.length === 0) {
-          setError("No anime found in your 'Plan to Watch' list matching these filters. Try loosening them.");
-          setIsRolling(false);
-          return;
-        }
-
-        const randomPick = list[Math.floor(Math.random() * list.length)];
-        
-        let reasons = ['From My Plan to Watch'];
-        if (airingStatus !== 'Any') reasons.push(airingStatus === 'RELEASING' ? 'Ongoing' : 'Completed');
-        if (maxEpisodes !== '' && maxEpisodes !== 'Any') reasons.push(`≤ ${maxEpisodes} eps`);
-        setMatchReason(reasons.join(', '));
-
-        const formatted = {
-          malId: randomPick.isFranchise ? null : randomPick.malId,
-          franchiseId: randomPick.isFranchise ? randomPick.franchiseId : null,
-          isFranchise: randomPick.isFranchise,
-          bannerImage: randomPick.metadata?.bannerImage || randomPick.poster, // Using poster as fallback
-          metadata: {
-            title: randomPick.title,
-            poster: randomPick.poster,
-            episodes: randomPick.totalEpisodes || randomPick.metadata?.episodes,
-            status: randomPick.airStatus || randomPick.metadata?.status,
-            genres: randomPick.metadata?.genres || []
-          },
-          personalRating: randomPick.personalRating,
-          episodesWatched: randomPick.totalWatchedAll || randomPick.episodesWatched || 0
-        };
-        
-        setSelectedAnime(formatted);
-        setIsRolling(false);
-        return;
-      }
-
-      // Pick a random page from the top 5 pages (~top 250 anime for the given filters)
-      // If we use strict filters, there might be fewer pages, so we fetch page 1-3.
-      const page = Math.floor(Math.random() * 3) + 1; 
-      const variables = { page, format: 'TV' };
+      const rec = await generateRecommendation(selectedMode);
       
-      if (genreFilter !== 'Any') {
-        variables.genre = genreFilter;
+      // Check if it's already in collection (should be excluded by service, but safety check for local status)
+      const local = await getUserAnime(rec.anime.idMal);
+      if (local && local.status) {
+         setAddSuccess(true);
       }
       
-      if (airingStatus !== 'Any') {
-        variables.status = airingStatus;
-      }
-
-      const res = await fetch('https://graphql.anilist.co', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Accept': 'application/json',
-        },
-        body: JSON.stringify({ query: ANILIST_QUERY, variables })
-      });
-
-      if (!res.ok) throw new Error("Failed to reach AniList");
-
-      const json = await res.json();
-      if (!json.data || !json.data.Page || !json.data.Page.media) {
-         throw new Error("Invalid API Response");
+      // Simulate cinematic transition delay if not reduced motion
+      const prefersReducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+      if (!prefersReducedMotion) {
+         await new Promise(resolve => setTimeout(resolve, 800));
       }
       
-      let list = json.data.Page.media.filter(a => {
-        if (!a.idMal) return false;
-        // Only return the base franchise entry by excluding sequels/spinoffs
-        const isSequel = a.relations?.edges?.some(e => 
-          ['PREQUEL', 'PARENT', 'ALTERNATIVE'].includes(e.relationType)
-        );
-        return !isSequel;
-      });
-
-      // Filter by max episodes
-      if (maxEpisodes !== '' && maxEpisodes !== 'Any') {
-        const limit = parseInt(maxEpisodes, 10);
-        list = list.filter(a => a.episodes && a.episodes <= limit);
-      }
-
-      // Filter by IMDb rating proxy (AniList score 0-100)
-      if (imdbMinRating !== 'Any') {
-        const minScore = parseFloat(imdbMinRating) * 10;
-        list = list.filter(a => a.averageScore && a.averageScore >= minScore);
-      }
-
-      if (list.length === 0) {
-        setError("No anime found matching these strict global filters on this roll. Try rolling again or loosening criteria.");
-        setIsRolling(false);
-        return;
-      }
-
-      // Pick random
-      const randomAnime = list[Math.floor(Math.random() * list.length)];
-
-      const formatted = {
-        malId: randomAnime.idMal,
-        metadata: {
-          title: randomAnime.title.english || randomAnime.title.romaji,
-          poster: randomAnime.coverImage?.large,
-          episodes: randomAnime.episodes,
-          genres: randomAnime.genres || [],
-          status: randomAnime.status
-        }
-      };
-
-      // Check if user has it locally
-      const localCollection = await getAllUserAnime(false);
-      const localAnime = localCollection.find(a => a.malId === randomAnime.idMal);
-      if (localAnime) {
-        formatted.personalRating = localAnime.personalRating;
-        formatted.episodesWatched = localAnime.episodesWatched;
-      }
-
-      const reasons = [];
-      if (airingStatus !== 'Any') reasons.push(airingStatus === 'FINISHED' ? 'Completed' : 'Ongoing');
-      if (maxEpisodes !== '' && maxEpisodes !== 'Any') reasons.push(`≤ ${maxEpisodes} eps`);
-      if (genreFilter !== 'Any') reasons.push(genreFilter);
-      if (imdbMinRating !== 'Any') reasons.push(`${imdbMinPercentage}% > ${imdbMinRating}⭐ (Global)`);
-      setMatchReason(reasons.join(', ') || 'Global Random Pick');
-
-      setSelectedAnime(formatted);
+      setResult(rec);
     } catch (err) {
       console.error(err);
-      setError("Failed to fetch random anime from global database.");
+      setError(err.message || 'Failed to generate recommendation.');
+    } finally {
+      setIsGenerating(false);
     }
-    
-    setIsRolling(false);
   };
 
+  const handleAdd = async () => {
+     if (!result || !result.anime || !result.anime.idMal) return;
+     setIsAdding(true);
+     try {
+         const franchiseData = await getFranchiseData(result.anime.idMal);
+         if (franchiseData) {
+             await addFranchiseToDb(franchiseData);
+             setAddSuccess(true);
+         }
+     } catch (e) {
+         console.error(e);
+     } finally {
+         setIsAdding(false);
+     }
+  };
+
+  // 1. Hero / Selection State
+  if (!isGenerating && !result && !error) {
+    return (
+      <div className="max-w-4xl mx-auto pt-20 pb-32 text-center px-4">
+        <div className="mb-12 animate-in fade-in slide-in-from-bottom-4 duration-700">
+           <h1 className="text-display-l font-bold text-white mb-6">What should I watch?</h1>
+           {!hasCollection ? (
+             <p className="text-body-l text-zinc-400 max-w-xl mx-auto">
+                Your Anime Universe is still empty. Try a random discovery below, or add some anime to your collection to unlock personalized recommendations.
+             </p>
+           ) : (
+             <p className="text-body-l text-zinc-400 max-w-xl mx-auto">
+                Let MY AN!ME analyze your taste profile and find the perfect next series.
+             </p>
+           )}
+        </div>
+
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-6 animate-in fade-in slide-in-from-bottom-8 duration-700 delay-100">
+           
+           <button onClick={() => handleDiscover('Taste')} disabled={!hasCollection} className="group relative bg-surface-1 hover:bg-surface-2 border border-white/5 hover:border-primary/30 rounded-[24px] p-8 text-left transition-all duration-300 shadow-depth-2 hover:shadow-depth-3 disabled:opacity-50 disabled:cursor-not-allowed">
+              <div className="bg-primary/10 text-primary w-12 h-12 rounded-full flex items-center justify-center mb-6 group-hover:scale-110 transition-transform">
+                 <Heart size={24} />
+              </div>
+              <h3 className="text-h4 font-bold text-white mb-2">Based On My Taste</h3>
+              <p className="text-sm text-zinc-500">Strongly weighted toward your Anime DNA and highly rated genres.</p>
+              {!hasCollection && <div className="absolute inset-0 flex items-center justify-center bg-void/80 rounded-[24px] backdrop-blur-sm opacity-0 group-hover:opacity-100 transition-opacity"><span className="text-xs font-bold text-white bg-surface-3 px-3 py-1 rounded-full">Requires Collection Data</span></div>}
+           </button>
+
+           <button onClick={() => handleDiscover('Different')} disabled={!hasCollection} className="group relative bg-surface-1 hover:bg-surface-2 border border-white/5 hover:border-warning/30 rounded-[24px] p-8 text-left transition-all duration-300 shadow-depth-2 hover:shadow-depth-3 disabled:opacity-50 disabled:cursor-not-allowed">
+              <div className="bg-warning/10 text-warning w-12 h-12 rounded-full flex items-center justify-center mb-6 group-hover:scale-110 transition-transform">
+                 <Compass size={24} />
+              </div>
+              <h3 className="text-h4 font-bold text-white mb-2">Something Different</h3>
+              <p className="text-sm text-zinc-500">Explore genres and styles that are less represented in your collection.</p>
+              {!hasCollection && <div className="absolute inset-0 flex items-center justify-center bg-void/80 rounded-[24px] backdrop-blur-sm opacity-0 group-hover:opacity-100 transition-opacity"><span className="text-xs font-bold text-white bg-surface-3 px-3 py-1 rounded-full">Requires Collection Data</span></div>}
+           </button>
+
+           <button onClick={() => handleDiscover('Surprise')} className="group bg-surface-1 hover:bg-surface-2 border border-white/5 hover:border-white/20 rounded-[24px] p-8 text-left transition-all duration-300 shadow-depth-2 hover:shadow-depth-3">
+              <div className="bg-white/5 text-white w-12 h-12 rounded-full flex items-center justify-center mb-6 group-hover:scale-110 transition-transform">
+                 <Dices size={24} />
+              </div>
+              <h3 className="text-h4 font-bold text-white mb-2">Surprise Me</h3>
+              <p className="text-sm text-zinc-500">A completely open-ended but highly rated discovery pick.</p>
+           </button>
+
+        </div>
+      </div>
+    );
+  }
+
+  // 2. Generating State
+  if (isGenerating) {
+     return (
+        <div className="max-w-4xl mx-auto pt-32 pb-32 text-center flex flex-col items-center justify-center animate-in fade-in duration-500">
+           <div className="relative mb-8">
+              <div className="absolute inset-0 bg-primary/20 blur-xl rounded-full animate-pulse" />
+              <Loader2 size={64} className="text-primary animate-spin relative z-10" />
+           </div>
+           <h2 className="text-h2 font-bold text-white mb-2">Analyzing your universe...</h2>
+           <p className="text-zinc-400">Finding the perfect match based on {mode === 'Taste' ? 'your DNA' : mode === 'Different' ? 'undiscovered frontiers' : 'global popularity'}.</p>
+        </div>
+     );
+  }
+
+  // 3. Error State
+  if (error) {
+     return (
+        <div className="max-w-xl mx-auto pt-32 text-center">
+           <div className="bg-error/10 border border-error/20 rounded-2xl p-8">
+              <h2 className="text-xl font-bold text-error mb-4">Discovery Failed</h2>
+              <p className="text-error/80 mb-6">{error}</p>
+              <Button onClick={() => setError(null)} variant="secondary">Try Again</Button>
+           </div>
+        </div>
+     );
+  }
+
+  // 4. Result Reveal
+  const anime = result.anime;
+  const bannerUrl = anime.bannerImage || anime.coverImage?.extraLarge;
+  const posterUrl = anime.coverImage?.extraLarge || anime.coverImage?.large;
+  const title = anime.title?.english || anime.title?.romaji;
+  
   return (
-    <div className="max-w-4xl mx-auto pb-12 relative isolate min-h-[500px]">
-      <AnimatedAnimeBackground anime={selectedAnime ? [selectedAnime] : []} />
-      <div className="relative z-10 px-4">
-      <div className="mb-8 text-center">
-        <h1 className="text-3xl font-bold text-white mb-2 flex items-center justify-center gap-3">
-          <Dices className="text-accent" size={32} /> Surprise Me
-        </h1>
-        <p className="text-zinc-400">Discover your next watch from the global anime database using advanced filters.</p>
-      </div>
+    <div className="max-w-5xl mx-auto pb-24 px-4 pt-4 md:pt-12">
+       
+       <button onClick={() => setResult(null)} className="text-sm font-bold text-zinc-500 hover:text-white flex items-center gap-2 mb-8 transition-colors">
+          <ArrowRight className="rotate-180" size={16} /> Back to Discovery
+       </button>
 
-      {/* Filter Controls */}
-      <div className="bg-dark-surface border border-zinc-800 rounded-lg p-6 mb-8 mx-auto">
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 mb-6">
-          <div>
-            <label className="text-xs text-zinc-500 font-semibold uppercase mb-2 block">Source Pool</label>
-            <select 
-              value={sourceFilter} 
-              onChange={e => setSourceFilter(e.target.value)}
-              className="w-full bg-dark-base border border-zinc-700 rounded p-2 text-white text-sm focus:outline-none focus:border-accent"
-            >
-              <option value="Global">Global Database</option>
-              <option value="My List">My Plan to Watch</option>
-            </select>
-          </div>
+       <div className="relative bg-surface-1 rounded-[32px] overflow-hidden border border-white/5 shadow-depth-4 animate-in fade-in zoom-in-95 duration-700 ease-out">
           
-          <div>
-            <label className="text-xs text-zinc-500 font-semibold uppercase mb-2 block">Airing Status</label>
-            <select 
-              value={airingStatus} 
-              onChange={e => setAiringStatus(e.target.value)}
-              className="w-full bg-dark-base border border-zinc-700 rounded p-2 text-white text-sm focus:outline-none focus:border-accent"
-            >
-              <option value="Any">Any</option>
-              <option value="FINISHED">Completed</option>
-              <option value="RELEASING">Ongoing</option>
-            </select>
-          </div>
-          
-          <div>
-            <label className="text-xs text-zinc-500 font-semibold uppercase mb-2 block">Max Episodes</label>
-            <input 
-              type="number" 
-              min="1"
-              placeholder="Any"
-              value={maxEpisodes}
-              onChange={e => setMaxEpisodes(e.target.value)}
-              className="w-full bg-dark-base border border-zinc-700 rounded p-2 text-white text-sm focus:outline-none focus:border-accent placeholder:text-zinc-600"
-            />
-          </div>
+          {/* Banner Background */}
+          {bannerUrl && (
+             <div className="absolute inset-0 h-[300px] md:h-[400px] w-full z-0 opacity-30 mask-image-b">
+                <img src={bannerUrl} alt="Background" className="w-full h-full object-cover" />
+                <div className="absolute inset-0 bg-gradient-to-t from-surface-1 via-surface-1/50 to-transparent" />
+             </div>
+          )}
 
-          <div>
-            <label className="text-xs text-zinc-500 font-semibold uppercase mb-2 block">Genre</label>
-            <select 
-              disabled={sourceFilter === 'My List'}
-              value={genreFilter} 
-              onChange={e => setGenreFilter(e.target.value)}
-              className="w-full bg-dark-base border border-zinc-700 rounded p-2 text-white text-sm focus:outline-none focus:border-accent"
-            >
-              <option value="Any">Any</option>
-              {ALL_GENRES.map(g => (
-                <option key={g} value={g}>{g}</option>
-              ))}
-            </select>
-          </div>
+          <div className="relative z-10 p-6 md:p-12 flex flex-col md:flex-row gap-8 md:gap-12 items-start md:items-end">
+             
+             {/* Poster */}
+             <div className="w-40 md:w-64 shrink-0 rounded-2xl overflow-hidden shadow-depth-5 border border-white/10 -mt-20 md:-mt-32">
+                <img src={posterUrl} alt={title} className="w-full h-full object-cover aspect-[2/3]" />
+             </div>
 
-          <div>
-            <label className="text-xs text-zinc-500 font-semibold uppercase mb-2 block">Min IMDb Rating (Ep)</label>
-            <select 
-              disabled={sourceFilter === 'My List'}
-              value={imdbMinRating} 
-              onChange={e => setImdbMinRating(e.target.value)}
-              className="w-full bg-dark-base border border-zinc-700 rounded p-2 text-white text-sm focus:outline-none focus:border-accent"
-            >
-              <option value="Any">Any</option>
-              <option value="9.0">9.0+</option>
-              <option value="8.5">8.5+</option>
-              <option value="8.0">8.0+</option>
-              <option value="7.5">7.5+</option>
-              <option value="7.0">7.0+</option>
-            </select>
-          </div>
-
-          <div>
-            <label className="text-xs text-zinc-500 font-semibold uppercase mb-2 block">% of Episodes</label>
-            <select 
-              value={imdbMinPercentage} 
-              onChange={e => setImdbMinPercentage(e.target.value)}
-              disabled={imdbMinRating === 'Any' || sourceFilter === 'My List'}
-              className="w-full bg-dark-base border border-zinc-700 rounded p-2 text-white text-sm focus:outline-none focus:border-accent disabled:opacity-50"
-            >
-              <option value="50">At least 50%</option>
-              <option value="70">At least 70%</option>
-              <option value="80">At least 80%</option>
-              <option value="90">At least 90%</option>
-              <option value="100">100%</option>
-            </select>
-          </div>
-
-        </div>
-        
-        <button 
-          onClick={handleSurpriseMe}
-          disabled={isRolling}
-          className="w-full bg-accent hover:bg-accent-hover disabled:bg-accent/50 text-white py-3 rounded-lg font-bold text-lg transition-colors flex items-center justify-center gap-2 border border-accent/50"
-        >
-          {isRolling ? <Loader2 size={24} className="animate-spin" /> : <Dices size={24} />}
-          {isRolling ? 'ROLLING...' : 'SURPRISE ME'}
-        </button>
-      </div>
-
-      {/* Error / Empty State */}
-      {error && (
-        <div className="text-center p-6 bg-red-950/20 border border-red-900/50 rounded-lg max-w-xl mx-auto text-red-400">
-          {error}
-        </div>
-      )}
-
-      {/* Result */}
-      {selectedAnime && !isRolling && (
-        <div className="bg-dark-surface border border-zinc-800 rounded-lg p-6 max-w-2xl mx-auto animate-in fade-in zoom-in duration-300">
-          <div className="flex flex-col sm:flex-row gap-6">
-            <div className="w-full sm:w-48 shrink-0">
-              <div className="aspect-[2/3] rounded overflow-hidden bg-zinc-900 border border-zinc-700 relative">
-                {selectedAnime.metadata?.poster ? (
-                  <img src={selectedAnime.metadata.poster} alt={selectedAnime.metadata.title} className="w-full h-full object-cover" />
-                ) : (
-                  <div className="w-full h-full flex items-center justify-center text-zinc-600">No Image</div>
-                )}
-                {selectedAnime.metadata?.status && (
-                  <div className="absolute top-2 right-2 bg-dark-base/90 backdrop-blur-sm text-micro font-bold px-2 py-1 rounded text-white border border-zinc-700">
-                    {selectedAnime.metadata.status === 'RELEASING' ? 'ONGOING' : 'COMPLETED'}
-                  </div>
-                )}
-              </div>
-            </div>
-            
-            <div className="flex flex-col flex-1">
-              <div className="mb-2">
-                <span className="text-micro font-bold uppercase tracking-wider text-accent bg-accent/10 px-2 py-1 rounded border border-accent/20">
-                  Matched filters: {matchReason}
-                </span>
-              </div>
-              <h2 className="text-2xl font-bold text-white mb-2">{selectedAnime.metadata?.title}</h2>
-              
-              <div className="flex flex-wrap gap-4 mb-4">
-                <div className="text-sm text-zinc-300"><span className="text-zinc-500">Eps:</span> {selectedAnime.metadata?.episodes || '?'}</div>
-                {selectedAnime.personalRating && (
-                  <div className="text-sm text-accent font-medium"><span className="text-zinc-500">My Rating:</span> ⭐ {selectedAnime.personalRating}</div>
-                )}
-                {selectedAnime.episodesWatched !== undefined && (
-                  <div className="text-sm text-zinc-300"><span className="text-zinc-500">Progress:</span> {selectedAnime.episodesWatched || 0} / {selectedAnime.metadata?.episodes || '?'}</div>
-                )}
-              </div>
-
-              {selectedAnime.metadata?.genres?.length > 0 && (
-                <div className="flex flex-wrap gap-2 mb-6">
-                  {selectedAnime.metadata.genres.slice(0, 4).map(g => (
-                    <span key={g} className="text-xs text-zinc-400 bg-dark-elevated border border-zinc-800 px-2 py-1 rounded-full">{g}</span>
-                  ))}
+             {/* Metadata */}
+             <div className="flex-1 w-full pt-0 md:pt-16">
+                
+                {/* Reason Pill */}
+                <div className="inline-flex items-center gap-2 bg-primary/20 border border-primary/30 text-primary text-xs font-bold uppercase tracking-wider px-3 py-1.5 rounded-full mb-4 animate-in slide-in-from-bottom-2 duration-500 delay-300">
+                   <Sparkles size={14} /> {mode === 'Taste' ? 'Perfect Match' : mode === 'Different' ? 'New Frontier' : 'Surprise Pick'}
                 </div>
-              )}
 
-              <div className="mt-auto flex gap-3">
-                <Link to={selectedAnime.isFranchise ? `/franchise/${selectedAnime.franchiseId}` : `/anime/${selectedAnime.malId}`} className="flex-1 text-center bg-zinc-800 hover:bg-zinc-700 text-white py-2 rounded font-semibold transition-colors">
-                  Open Title
-                </Link>
-                <button 
-                  onClick={handleSurpriseMe} 
-                  className="flex-1 bg-dark-elevated hover:bg-zinc-700 border border-zinc-700 text-white py-2 rounded font-semibold transition-colors"
+                <h1 className="text-display-s md:text-display-m font-bold text-white mb-2 leading-tight">
+                   {title}
+                </h1>
+                
+                <div className="flex flex-wrap items-center gap-4 text-sm text-zinc-400 font-medium mb-6">
+                   <span className="flex items-center gap-1 text-white bg-surface-3 px-2 py-1 rounded">
+                      <span className="text-accent">★</span> {(anime.averageScore / 10).toFixed(1)}
+                   </span>
+                   {anime.episodes && <span>{anime.episodes} Episodes</span>}
+                   {anime.format && <span>{anime.format}</span>}
+                   {anime.status && <span>{anime.status.replace('_', ' ')}</span>}
+                </div>
+
+                <div className="flex flex-wrap gap-2 mb-8">
+                   {anime.genres?.map(g => (
+                      <span key={g} className="text-xs text-zinc-400 bg-surface-2 border border-white/5 px-2.5 py-1 rounded-full">
+                         {g}
+                      </span>
+                   ))}
+                </div>
+
+                <div className="bg-surface-2/80 backdrop-blur border border-white/5 rounded-2xl p-6 mb-8 animate-in slide-in-from-bottom-4 duration-500 delay-500">
+                   <p className="text-body-l text-white italic">"{result.reason}"</p>
+                </div>
+
+             </div>
+          </div>
+
+          {/* Synopsis & Actions */}
+          <div className="p-6 md:p-12 pt-0 border-t border-white/5 bg-surface-1 flex flex-col md:flex-row gap-12">
+             <div className="flex-1">
+                <h3 className="text-h4 font-bold text-white mb-4">Synopsis</h3>
+                <div 
+                   className="text-body-m text-zinc-400 leading-relaxed max-w-3xl line-clamp-6"
+                   dangerouslySetInnerHTML={{ __html: anime.description || "No synopsis available." }}
+                />
+             </div>
+             
+             <div className="w-full md:w-72 shrink-0 flex flex-col gap-4">
+                <Button 
+                   onClick={() => navigate(`/anime/${anime.idMal}`)}
+                   variant="primary" 
+                   className="w-full h-14 text-base"
                 >
-                  Roll Again
-                </button>
-              </div>
-            </div>
+                   View Details
+                </Button>
+                
+                <Button 
+                   onClick={handleAdd}
+                   disabled={isAdding || addSuccess}
+                   variant="secondary" 
+                   className="w-full h-14 text-base"
+                >
+                   {isAdding ? <Loader2 size={20} className="animate-spin" /> : addSuccess ? 'In Collection' : <><Plus size={20} /> Add to Collection</>}
+                </Button>
+
+                <Button 
+                   onClick={() => handleDiscover(mode)}
+                   variant="ghost" 
+                   className="w-full h-14 text-base mt-2"
+                >
+                   <RefreshCw size={20} className="mr-2" /> Roll Again
+                </Button>
+             </div>
           </div>
-        </div>
-      )}
-          </div>
+
+       </div>
     </div>
   );
 }
