@@ -3,7 +3,7 @@ import { useSortable } from '@dnd-kit/sortable';
 import { CSS } from '@dnd-kit/utilities';
 import { Link } from 'react-router-dom';
 import { Folder, GripVertical } from 'lucide-react';
-import Tilt from 'react-parallax-tilt';
+import { AnimeCard3DWrapper } from '../components/ui/AnimeCard3DWrapper';
 import clsx from 'clsx';
 
 export default function SortableAnimeItem({ item, activeTab, isEditingOrder, viewMode }) {
@@ -106,16 +106,7 @@ export default function SortableAnimeItem({ item, activeTab, isEditingOrder, vie
         isDragging ? "z-50" : ""
       )}
     >
-      <Tilt 
-        tiltMaxAngleX={10} 
-        tiltMaxAngleY={10} 
-        scale={1.02} 
-        transitionSpeed={400} 
-        className={clsx(
-          "flex-1 relative group rounded-lg overflow-hidden bg-dark-surface border flex flex-col h-full transition-all",
-          isDragging ? "border-accent shadow-lg shadow-accent/20 scale-105" : "border-zinc-800 hover:border-accent hover:shadow-lg hover:shadow-accent/20"
-        )}
-      >
+      <AnimeCard3DWrapper className={clsx("flex-1 relative group rounded-lg overflow-hidden bg-surface-1 border flex flex-col h-full transition-all", isDragging ? "border-primary shadow-depth-2 scale-105" : "border-zinc-800 hover:border-primary")}>
         <Link to={to} className="flex flex-col h-full pointer-events-auto">
         <div className="aspect-[2/3] w-full bg-zinc-900 relative">
           {item.poster ? (
@@ -157,7 +148,7 @@ export default function SortableAnimeItem({ item, activeTab, isEditingOrder, vie
           </p>
         </div>
       </Link>
-      </Tilt>
+      </AnimeCard3DWrapper>
       
       {isEditingOrder && (
         <div 

@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react';
 import { useParams, Link } from 'react-router-dom';
 import { supabase } from '../services/supabase';
 import { UserCircle, Calendar, ShieldAlert, Tv } from 'lucide-react';
-import Tilt from 'react-parallax-tilt';
+import { AnimeCard3DWrapper } from '../components/ui/AnimeCard3DWrapper';
 import { useAuth } from '../contexts/AuthContext';
 
 export default function ProfilePage() {
@@ -133,7 +133,7 @@ export default function ProfilePage() {
       ) : (
         <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-4">
           {(activeTab === 'All' ? collection : collection.filter(a => a.personalStatus === activeTab)).map(anime => (
-            <Tilt key={anime.malId} tiltMaxAngleX={15} tiltMaxAngleY={15} scale={1.03} transitionSpeed={400} className="rounded-lg h-full">
+            <AnimeCard3DWrapper key={anime.malId}>
               <Link to={`/anime/${anime.malId}`} className="h-full block group relative rounded-lg overflow-hidden bg-dark-surface border border-zinc-800 hover:border-accent transition-colors hover:shadow-lg hover:shadow-accent/20">
               <div className="aspect-[2/3] w-full bg-zinc-800 relative">
                 {anime.metadata?.poster ? (
@@ -162,7 +162,7 @@ export default function ProfilePage() {
                 </p>
               </div>
             </Link>
-            </Tilt>
+            </AnimeCard3DWrapper>
           ))}
         </div>
       )}

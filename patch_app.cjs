@@ -1,51 +1,10 @@
-import { BrowserRouter as Router, Routes, Route, Link, NavLink } from 'react-router-dom';
-import { AuthProvider, useAuth } from './contexts/AuthContext.jsx';
-import AuthPage from './pages/AuthPage.jsx';
-import { Navigate, useLocation } from 'react-router-dom';
-import { LogOut } from 'lucide-react';
-import { supabase } from './services/supabase.js';
-import { migrateLocalToCloud } from './services/cloudMigration.js';
+const fs = require('fs');
 
-import { Search, Home, Library, Settings as SettingsIcon, BarChart3, Dices, ShieldAlert } from 'lucide-react';
-import SearchPage from './pages/SearchPage.jsx';
-import AnimeDetailsPage from './pages/AnimeDetailsPage.jsx';
-import HomePage from './pages/HomePage.jsx';
-import MyAnimePage from './pages/MyAnimePage.jsx';
-import SettingsPage from './pages/SettingsPage.jsx';
-import StatisticsPage from './pages/StatisticsPage.jsx';
-import SurpriseMePage from './pages/SurpriseMePage.jsx';
-import AdminPanelPage from './pages/AdminPanelPage.jsx';
-import Notifications from './components/Notifications.jsx';
-import FranchiseDetailsPage from './pages/FranchiseDetailsPage.jsx';
-import clsx from 'clsx';
-import { useEffect, useState, useRef } from 'react';
-import { LoginModalProvider, useLoginModal } from './contexts/LoginModalContext.jsx';
-import LoginModal from './components/LoginModal.jsx';
-import ProfilePage from './pages/ProfilePage.jsx';
-import { UserCircle } from 'lucide-react';
+let code = fs.readFileSync('src/App.jsx', 'utf8');
 
-import { db } from './services/db.js';
-
-
-
-
-
+// 1. Remove old components defined inside App.jsx
+code = code.replace(/const HeaderProfile = \(\) => \{[\s\S]*?export default App;/m, `
 import Navbar from './components/layout/Navbar.jsx';
-
-
-const ProtectedRoute = ({ children }) => {
-  const { session, loading } = useAuth();
-  
-  useEffect(() => {
-    if (session?.user?.id) {
-      migrateLocalToCloud(session.user.id);
-    }
-  }, [session]);
-
-  if (loading) return <div className="min-h-screen flex items-center justify-center bg-void"><div className="animate-spin w-8 h-8 border-4 border-primary border-t-transparent rounded-full" /></div>;
-  if (!session) return <Navigate to="/auth" />;
-  return children;
-};
 
 function AppContent() {
   const { adminMode } = useAuth();
@@ -117,4 +76,6 @@ function App() {
 }
 
 export default App;
+`);
 
+fs.writeFileSync('src/App.jsx', code);

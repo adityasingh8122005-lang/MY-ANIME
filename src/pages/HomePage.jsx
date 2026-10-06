@@ -3,8 +3,9 @@ import { Link } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
 import MyAnimePage from './MyAnimePage';
 import AnimatedAnimeBackground from '../components/AnimatedAnimeBackground';
+import CinematicHero from '../components/layout/CinematicHero';
 import { Flame, Loader2, Dices } from 'lucide-react';
-import Tilt from 'react-parallax-tilt';
+import { AnimeCard3DWrapper } from '../components/ui/AnimeCard3DWrapper';
 
 const TRENDING_QUERY = `
 query {
@@ -16,6 +17,9 @@ query {
       bannerImage
       episodes
       status
+      description
+      genres
+      averageScore
     }
   }
 }
@@ -68,6 +72,8 @@ export default function HomePage() {
     <div className="max-w-7xl mx-auto relative isolate">
       <AnimatedAnimeBackground anime={trending} />
       <div className="relative z-10 px-4 pb-8">
+      {trending.length > 0 && <CinematicHero animeList={trending.slice(0, 5)} />}
+
       <div className="mb-8 text-center pt-8">
         <h1 className="text-3xl font-bold text-white mb-2 flex items-center justify-center gap-2">
           <Flame className="text-accent" size={32} /> Trending Anime
@@ -77,7 +83,7 @@ export default function HomePage() {
 
       <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-4">
         {trending.map(anime => (
-          <Tilt key={anime.idMal} tiltMaxAngleX={15} tiltMaxAngleY={15} scale={1.03} transitionSpeed={400} className="rounded-lg h-full">
+          <AnimeCard3DWrapper key={anime.idMal}>
           <Link to={`/anime/${anime.idMal}`} className="h-full block group relative rounded-lg overflow-hidden bg-dark-surface border border-zinc-800 hover:border-accent transition-colors hover:shadow-lg hover:shadow-accent/20">
             <div className="aspect-[2/3] w-full bg-zinc-800 relative">
               {anime.coverImage?.large ? (
@@ -87,18 +93,18 @@ export default function HomePage() {
               )}
               
               {anime.status && (
-                <div className="absolute top-2 left-2 bg-dark-base/90 backdrop-blur-sm px-2 py-1 rounded text-micro font-bold text-white border border-zinc-700">
+                <div className="absolute top-2 left-2 bg-void/90 backdrop-blur-sm px-2 py-1 rounded text-micro font-bold text-white border border-zinc-700" style={{ transform: "translateZ(30px)" }}>
                   {anime.status === 'RELEASING' ? 'ONGOING' : 'COMPLETED'}
                 </div>
               )}
             </div>
             <div className="p-3">
-              <h3 className="text-sm font-bold text-white line-clamp-1 group-hover:text-accent transition-colors" title={anime.title.english || anime.title.romaji}>
+              <h3 className="text-sm font-bold text-white line-clamp-1 group-hover:text-primary transition-colors" title={anime.title.english || anime.title.romaji} style={{ transform: "translateZ(40px)" }}>
                 {anime.title.english || anime.title.romaji}
               </h3>
             </div>
           </Link>
-        </Tilt>
+        </AnimeCard3DWrapper>
         ))}
       </div>
           </div>
