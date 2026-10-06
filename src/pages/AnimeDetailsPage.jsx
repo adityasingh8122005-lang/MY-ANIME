@@ -10,10 +10,32 @@ import { getEpisodeFillerData, getSingleEpisodeFillerStatus, FILLER_STATUS, getA
 import { getImdbRating } from '../services/imdbApi';
 import { getFranchiseData } from '../services/franchiseApi';
 import { addFranchiseToDb } from '../services/franchiseService';
-import { Loader2, ArrowLeft, ExternalLink, Calendar, History, Trash2, CheckCircle, PlayCircle, List, PauseCircle, XCircle, Plus, Edit2, MessageSquare, Lightbulb } from 'lucide-react';
+import { Loader2, ArrowLeft, ExternalLink, Calendar, History, Trash2, CheckCircle, PlayCircle, List, PauseCircle, XCircle, Plus, Edit2, MessageSquare, Lightbulb, Star } from 'lucide-react';
+import { Button } from '../components/ui/Button';
+import { Card } from '../components/ui/Card';
 import ChatBox from '../components/ChatBox';
 import CommentsSection from '../components/CommentsSection';
 import TheoriesSection from '../components/TheoriesSection';
+
+
+const ReadMore = ({ text, maxLength = 300 }) => {
+  const [expanded, setExpanded] = useState(false);
+  if (!text) return null;
+  if (text.length <= maxLength) return <p className="text-body-m text-zinc-300 leading-relaxed">{text}</p>;
+  return (
+    <div>
+      <p className="text-body-m text-zinc-300 leading-relaxed inline">
+        {expanded ? text : text.slice(0, maxLength) + '...'}
+      </p>
+      <button 
+        onClick={() => setExpanded(!expanded)} 
+        className="ml-2 text-primary hover:text-primary-hover font-medium focus-visible-ring rounded transition-colors"
+      >
+        {expanded ? 'Show less' : 'Read more'}
+      </button>
+    </div>
+  );
+};
 
 export default function AnimeDetailsPage() {
   const { session } = useAuth();
@@ -27,6 +49,24 @@ export default function AnimeDetailsPage() {
   const [isAddingFranchise, setIsAddingFranchise] = useState(false);
   const [error, setError] = useState(null);
   const [activeTab, setActiveTab] = useState('episodes');
+  const [banner, setBanner] = useState(null);
+  useEffect(() => {
+    if (!id) return;
+    async function fetchBanner() {
+      try {
+        const query = `query($id: Int) { Media(idMal: $id, type: ANIME) { bannerImage coverImage { extraLarge } } }`;
+        const res = await fetch('https://graphql.anilist.co', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ query, variables: { id: parseInt(id) } })
+        });
+        const json = await res.json();
+        const media = json.data?.Media;
+        if (media) setBanner(media.bannerImage || media.coverImage?.extraLarge);
+      } catch (e) {}
+    }
+    fetchBanner();
+  }, [id]);
 
   const handleAddFranchise = async () => {
     setIsAddingFranchise(true);
@@ -213,8 +253,22 @@ export default function AnimeDetailsPage() {
 
   if (isLoading) {
     return (
-      <div className="flex justify-center items-center h-64">
-        <Loader2 size={32} className="animate-spin text-accent" />
+      <div className="animate-pulse pb-12 -mt-8 sm:-mt-16">
+        <div className="w-full h-[45vh] bg-surface-2 overflow-hidden mb-8" />
+        <div className="content-container relative z-10 -mt-32 max-w-6xl mx-auto">
+          <div className="flex flex-col md:flex-row gap-8">
+            <div className="w-full md:w-64 lg:w-72 h-96 bg-surface-2 rounded-[20px] shrink-0" />
+            <div className="flex-1 space-y-4 pt-12">
+              <div className="h-10 bg-surface-2 rounded w-1/2" />
+              <div className="h-6 bg-surface-2 rounded w-1/4" />
+              <div className="space-y-2 mt-8">
+                <div className="h-4 bg-surface-2 rounded w-full" />
+                <div className="h-4 bg-surface-2 rounded w-full" />
+                <div className="h-4 bg-surface-2 rounded w-3/4" />
+              </div>
+            </div>
+          </div>
+        </div>
       </div>
     );
   }
@@ -238,15 +292,26 @@ export default function AnimeDetailsPage() {
   const isFinished = displayEpisodes && userAnime?.episodesWatched === displayEpisodes && anime.status === "Finished Airing";
 
   return (
-    <div className="max-w-5xl mx-auto pb-12">
-      <button onClick={() => navigate(-1)} className="inline-flex items-center gap-2 text-zinc-400 hover:text-white mb-6 transition-colors">
-        <ArrowLeft size={16} /> Back
-      </button>
+    <div className="pb-12 -mt-8 sm:-mt-16 relative">
+      <div className="absolute top-0 left-0 right-0 h-[45vh] min-h-[350px] bg-void overflow-hidden pointer-events-none z-0">
+        {banner ? (
+          <img src={banner} alt="Banner" className="w-full h-full object-cover opacity-60" />
+        ) : anime?.poster ? (
+          <img src={anime.poster} alt="Banner" className="w-full h-full object-cover opacity-30 blur-2xl scale-110" />
+        ) : null}
+        <div className="absolute inset-0 bg-gradient-to-t from-base via-base/80 to-transparent" />
+        <div className="absolute inset-0 bg-gradient-to-r from-base via-base/40 to-transparent" />
+      </div>
 
-      <div className="flex flex-col md:flex-row gap-8">
-        {/* Left Column - Poster & Actions */}
-        <div className="w-full md:w-72 shrink-0">
-          <div className="rounded-lg overflow-hidden border border-zinc-800 bg-dark-surface shadow-lg">
+      <div className="content-container relative z-10 pt-[15vh] sm:pt-[20vh] max-w-6xl mx-auto">
+        <button onClick={() => navigate(-1)} className="inline-flex items-center gap-2 text-zinc-400 hover:text-white mb-6 transition-colors focus-visible-ring rounded">
+          <ArrowLeft size={16} /> Back
+        </button>
+
+        <div className="flex flex-col md:flex-row gap-8">
+          {/* Left Column - Poster & Actions */}
+          <div className="w-full md:w-64 lg:w-72 shrink-0">
+            <div className="rounded-[20px] overflow-hidden border border-white/10 bg-surface-1 shadow-depth-4 mb-6 transition-transform hover:-translate-y-1 duration-300">
             {anime.poster ? (
               <img src={anime.poster} alt={anime.title} className="w-full object-cover aspect-[2/3]" />
             ) : (
@@ -338,74 +403,57 @@ export default function AnimeDetailsPage() {
           </div>
         </div>
 
-        {/* Right Column - Details */}
-        <div className="flex-1">
-          <h1 className="text-3xl font-bold text-white mb-1">{anime.title}</h1>
-          {anime.japaneseTitle && (
-            <h2 className="text-xl text-zinc-400 mb-6 font-medium">{anime.japaneseTitle}</h2>
-          )}
-
-          <div className="flex flex-wrap gap-4 mb-8">
-            {imdbScore !== null && (
-              <div className="flex flex-col border border-zinc-800 rounded bg-dark-surface p-3 min-w-[100px] items-center">
-                <span className="text-xs text-zinc-500 uppercase font-bold tracking-wider mb-1">IMDb</span>
-                <span className="text-xl font-bold text-white flex items-center gap-1">
-                  <span className="text-yellow-500">⭐</span> {imdbScore}
-                </span>
-              </div>
+                {/* Right Column - Details */}
+        <div className="flex-1 pt-6 md:pt-12">
+          <div className="flex flex-wrap items-center gap-3 mb-4">
+            {imdbScore && (
+              <span className="flex items-center gap-1 text-warning font-bold text-caption bg-warning/10 px-2 py-1 rounded">
+                <Star size={14} className="fill-warning" />
+                {imdbScore}
+              </span>
+            )}
+            {displayEpisodes && (
+              <span className="text-zinc-300 text-caption font-medium px-2 py-1 bg-surface-2 rounded border border-white/5">
+                {displayEpisodes} Episodes
+              </span>
+            )}
+            {anime.status && (
+              <span className="text-zinc-300 text-caption font-medium px-2 py-1 bg-surface-2 rounded border border-white/5">
+                {anime.status}
+              </span>
+            )}
+            {anime.season && (
+              <span className="text-zinc-300 text-caption font-medium px-2 py-1 bg-surface-2 rounded border border-white/5 capitalize">
+                {anime.season} {anime.year}
+              </span>
             )}
             {userAnime?.personalRating && (
-              <div className="flex flex-col border border-accent/30 rounded bg-accent/10 p-3 min-w-[100px] items-center">
-                <span className="text-xs text-accent uppercase font-bold tracking-wider mb-1">My Rating</span>
-                <span className="text-xl font-bold text-white flex items-center gap-1">
-                  <span className="text-accent">⭐</span> {userAnime.personalRating}
-                </span>
-              </div>
+              <span className="text-primary text-caption font-bold px-2 py-1 bg-primary/10 rounded border border-primary/20">
+                My Rating: {userAnime.personalRating}/10
+              </span>
             )}
-            <div className="flex flex-col border border-zinc-800 rounded bg-dark-surface p-3 min-w-[100px] items-center">
-              <span className="text-xs text-zinc-500 uppercase font-bold tracking-wider mb-1">Status</span>
-              <span className="text-sm font-medium text-white text-center">{anime.status || 'Unknown'}</span>
-            </div>
-            <div className="flex flex-col border border-zinc-800 rounded bg-dark-surface p-3 min-w-[100px] items-center">
-              <span className="text-xs text-zinc-500 uppercase font-bold tracking-wider mb-1">Episodes</span>
-              <span className="text-sm font-medium text-white">{displayEpisodes || '?'}</span>
-            </div>
-            <div className="flex flex-col border border-zinc-800 rounded bg-dark-surface p-3 min-w-[100px] items-center">
-              <span className="text-xs text-zinc-500 uppercase font-bold tracking-wider mb-1">Season</span>
-              <span className="text-sm font-medium text-white capitalize">{anime.season ? `${anime.season} ${anime.year}` : 'Unknown'}</span>
-            </div>
           </div>
 
-          {/* Synopsis removed as requested */}
+          <h1 className="text-h1 sm:text-display-m font-bold text-white mb-2 leading-tight drop-shadow-md">
+            {anime.title}
+          </h1>
+          {anime.japaneseTitle && (
+            <h2 className="text-h4 text-zinc-400 mb-6 font-medium font-mono drop-shadow-sm">{anime.japaneseTitle}</h2>
+          )}
 
           {(anime.genres?.length > 0 || anime.themes?.length > 0) && (
-            <div className="mb-8">
-              <h3 className="text-lg font-semibold text-white mb-3 border-b border-zinc-800 pb-2">Information</h3>
-              <div className="flex flex-wrap gap-2">
-                {anime.genres?.map(genre => (
-                  <span key={genre} className="px-3 py-1 bg-zinc-800 text-zinc-200 text-xs rounded-full border border-zinc-700">
+            <div className="flex flex-wrap gap-2 mb-8 mt-6">
+                {anime.genres?.slice(0, 4).map(genre => (
+                  <span key={genre} className="px-3 py-1 bg-primary/10 text-primary text-micro font-bold uppercase rounded-full border border-primary/20">
                     {genre}
                   </span>
                 ))}
-                {anime.themes?.map(theme => (
-                  <span key={theme} className="px-3 py-1 bg-dark-elevated text-zinc-400 text-xs rounded-full border border-zinc-800">
-                    {theme}
-                  </span>
-                ))}
-              </div>
             </div>
           )}
 
-          {anime.alternativeTitles?.length > 0 && (
-            <div className="mb-8">
-              <h3 className="text-lg font-semibold text-white mb-3 border-b border-zinc-800 pb-2">Alternative Titles</h3>
-              <ul className="list-disc list-inside text-sm text-zinc-400">
-                {anime.alternativeTitles.map((title, i) => (
-                  <li key={i}>{title}</li>
-                ))}
-              </ul>
-            </div>
-          )}
+          <div className="mb-8 max-w-3xl">
+             <ReadMore text={anime.synopsis} maxLength={350} />
+          </div>
 
           {fillerStats && (
             <div className="mb-8">
@@ -500,19 +548,31 @@ export default function AnimeDetailsPage() {
                       })
                       .filter(ep => episodeFilter === 'All' || ep.fillerStatus === episodeFilter)
                       .map(ep => (
-                      <div key={ep.mal_id} className="flex flex-col sm:flex-row sm:items-center justify-between bg-dark-surface border border-zinc-800 p-3 rounded text-sm hover:border-zinc-700 transition-colors gap-2">
-                        <div className="flex items-center gap-3 flex-1 min-w-0">
-                          <span className="text-zinc-500 font-mono w-10 shrink-0">E{ep.mal_id}</span>
-                          <span className="text-white font-medium truncate" title={ep.title || `Episode ${ep.mal_id}`}>{ep.title || `Episode ${ep.mal_id}`}</span>
+                                            <div key={ep.mal_id} className="flex flex-col sm:flex-row sm:items-center justify-between bg-surface-2 hover:bg-surface-3 border border-white/5 p-3 rounded-lg text-sm transition-all duration-300 gap-3 group">
+                        <div className="flex items-center gap-4 flex-1 min-w-0">
+                          <span className="text-zinc-500 font-mono w-8 shrink-0 text-right group-hover:text-primary transition-colors">{String(ep.mal_id).padStart(2, '0')}</span>
+                          <div className="flex flex-col flex-1 min-w-0">
+                             <span className={`font-medium truncate transition-colors ${userAnime && userAnime.episodesWatched >= ep.mal_id ? 'text-zinc-400 line-through decoration-zinc-600' : 'text-white'}`} title={ep.title || `Episode ${ep.mal_id}`}>
+                               {ep.title || `Episode ${ep.mal_id}`}
+                             </span>
+                          </div>
                         </div>
-                        <span className={`text-micro font-bold uppercase px-2 py-1 rounded shrink-0 self-start sm:self-auto \${
-                          ep.fillerStatus === FILLER_STATUS.FILLER ? 'bg-red-500/10 text-red-400 border border-red-500/20' :
-                          ep.fillerStatus === FILLER_STATUS.CANON ? 'bg-green-500/10 text-green-400 border border-green-500/20' :
-                          ep.fillerStatus === FILLER_STATUS.MIXED ? 'bg-yellow-500/10 text-yellow-400 border border-yellow-500/20' :
-                          'bg-zinc-800 text-zinc-400 border border-zinc-700'
-                        }`}>
-                          {ep.fillerStatus}
-                        </span>
+                        <div className="flex items-center gap-3 shrink-0 self-start sm:self-auto">
+                          <span className={`text-micro font-bold uppercase px-2 py-1 rounded ${
+                            ep.fillerStatus === FILLER_STATUS.FILLER ? 'bg-error/10 text-error border border-error/20' :
+                            ep.fillerStatus === FILLER_STATUS.CANON ? 'bg-success/10 text-success border border-success/20' :
+                            ep.fillerStatus === FILLER_STATUS.MIXED ? 'bg-warning/10 text-warning border border-warning/20' :
+                            'bg-surface-3 text-zinc-400 border border-white/10'
+                          }`}>
+                            {ep.fillerStatus}
+                          </span>
+                          {userAnime && userAnime.episodesWatched >= ep.mal_id && (
+                             <CheckCircle size={16} className="text-success" />
+                          )}
+                          {userAnime && userAnime.episodesWatched < ep.mal_id && (
+                             <div className="w-4 h-4 rounded-full border-2 border-zinc-600 group-hover:border-primary transition-colors" />
+                          )}
+                        </div>
                       </div>
                     ))}
                     {episodesList.filter(ep => episodeFilter === 'All' || getSingleEpisodeFillerStatus(fillerData, ep.mal_id) === episodeFilter).length === 0 && (
@@ -628,6 +688,7 @@ export default function AnimeDetailsPage() {
 
         </div>
   
+      </div>
       </div>
       {/* Custom Confirm Modal */}
       {confirmDialog.isOpen && (

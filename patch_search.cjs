@@ -1,24 +1,10 @@
-import React, { useState, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
-import AnimatedAnimeBackground from '../components/AnimatedAnimeBackground';
-import { Link } from 'react-router-dom';
-import { Search as SearchIcon, Loader2, UserCircle } from 'lucide-react';
-import { supabase } from '../services/supabase';
+const fs = require('fs');
 
-const SEARCH_QUERY = `query ($search: String) {
-  Page(page: 1, perPage: 20) {
-    media(search: $search, type: ANIME, sort: SEARCH_MATCH, isAdult: false) {
-      idMal
-      title { romaji english }
-      coverImage { large }
-      bannerImage
-      episodes
-      status
-    }
-  }
-}`;
+const imports = "import React, { useState, useEffect } from 'react';\nimport { useNavigate } from 'react-router-dom';\nimport AnimatedAnimeBackground from '../components/AnimatedAnimeBackground';\nimport { Link } from 'react-router-dom';\nimport { Search as SearchIcon, Loader2, UserCircle } from 'lucide-react';\nimport { supabase } from '../services/supabase';";
 
+const SEARCH_QUERY = "query ($search: String) {\n  Page(page: 1, perPage: 20) {\n    media(search: $search, type: ANIME, sort: SEARCH_MATCH, isAdult: false) {\n      idMal\n      title { romaji english }\n      coverImage { large }\n      bannerImage\n      episodes\n      status\n    }\n  }\n}";
 
+const fullFile = imports + "\n\nconst SEARCH_QUERY = `" + SEARCH_QUERY + "`;\n\n" + `
 export default function SearchPage() {
   const navigate = useNavigate();
   const [mode, setMode] = useState('anime'); // 'anime' | 'profiles'
@@ -55,7 +41,7 @@ export default function SearchPage() {
         const { data, error } = await supabase
           .from('profiles')
           .select('id, username, avatar_url')
-          .ilike('username', "%" + query + "%")
+          .ilike('username', \\\`%\\\${query}%\\\`)
           .limit(20);
         if (data) setProfileResults(data);
       } catch (err) {
@@ -82,8 +68,8 @@ export default function SearchPage() {
          e.preventDefault();
          const item = mode === 'anime' ? results[selectedIndex] : profileResults[selectedIndex];
          if (item) {
-             if (mode === 'anime') navigate(`/anime/${item.idMal}`);
-             else navigate(`/profile/${item.username}`);
+             if (mode === 'anime') navigate(\`/anime/\${item.idMal}\`);
+             else navigate(\`/profile/\${item.username}\`);
          }
       } else if (e.key === 'Escape') {
          navigate(-1);
@@ -129,13 +115,13 @@ export default function SearchPage() {
         <div className="flex gap-4 p-3 bg-surface-1 border-b border-white/5 shrink-0">
           <button 
             onClick={() => { setMode('anime'); setSelectedIndex(-1); }}
-            className={`text-sm font-bold px-4 py-1.5 rounded-full transition-colors ${mode === 'anime' ? 'bg-primary text-white shadow-depth-2' : 'text-zinc-400 hover:text-white hover:bg-surface-2'}`}
+            className={\`text-sm font-bold px-4 py-1.5 rounded-full transition-colors \${mode === 'anime' ? 'bg-primary text-white shadow-depth-2' : 'text-zinc-400 hover:text-white hover:bg-surface-2'}\`}
           >
             Anime
           </button>
           <button 
             onClick={() => { setMode('profiles'); setSelectedIndex(-1); }}
-            className={`text-sm font-bold px-4 py-1.5 rounded-full transition-colors ${mode === 'profiles' ? 'bg-primary text-white shadow-depth-2' : 'text-zinc-400 hover:text-white hover:bg-surface-2'}`}
+            className={\`text-sm font-bold px-4 py-1.5 rounded-full transition-colors \${mode === 'profiles' ? 'bg-primary text-white shadow-depth-2' : 'text-zinc-400 hover:text-white hover:bg-surface-2'}\`}
           >
             Users
           </button>
@@ -157,9 +143,9 @@ export default function SearchPage() {
                {results.map((anime, idx) => (
                  <Link 
                    key={anime.idMal} 
-                   to={`/anime/${anime.idMal}`}
+                   to={\`/anime/\${anime.idMal}\`}
                    onMouseEnter={() => setSelectedIndex(idx)}
-                   className={`flex items-center gap-4 p-2 rounded-xl transition-all duration-200 ${selectedIndex === idx ? 'bg-surface-2 border border-white/5 shadow-depth-2 scale-[1.01]' : 'hover:bg-surface-2 border border-transparent'}`}
+                   className={\`flex items-center gap-4 p-2 rounded-xl transition-all duration-200 \${selectedIndex === idx ? 'bg-surface-2 border border-white/5 shadow-depth-2 scale-[1.01]' : 'hover:bg-surface-2 border border-transparent'}\`}
                  >
                    <div className="w-12 h-16 bg-surface-3 rounded-[8px] overflow-hidden shrink-0 shadow">
                      {anime.coverImage?.large ? (
@@ -184,9 +170,9 @@ export default function SearchPage() {
                {profileResults.map((prof, idx) => (
                  <Link 
                    key={prof.id} 
-                   to={`/profile/${prof.username}`}
+                   to={\`/profile/\${prof.username}\`}
                    onMouseEnter={() => setSelectedIndex(idx)}
-                   className={`flex items-center gap-4 p-3 rounded-xl transition-all duration-200 ${selectedIndex === idx ? 'bg-surface-2 border border-white/5 shadow-depth-2 scale-[1.01]' : 'hover:bg-surface-2 border border-transparent'}`}
+                   className={\`flex items-center gap-4 p-3 rounded-xl transition-all duration-200 \${selectedIndex === idx ? 'bg-surface-2 border border-white/5 shadow-depth-2 scale-[1.01]' : 'hover:bg-surface-2 border border-transparent'}\`}
                  >
                    <div className="w-12 h-12 bg-surface-3 rounded-full overflow-hidden shrink-0 border border-white/10 flex items-center justify-center">
                      {prof.avatar_url ? (
@@ -212,3 +198,6 @@ export default function SearchPage() {
     </div>
   );
 }
+`;
+
+fs.writeFileSync('src/pages/SearchPage.jsx', fullFile);

@@ -33,8 +33,8 @@ export default function SortableAnimeItem({ item, activeTab, isEditingOrder, vie
         ref={setNodeRef} 
         style={style} 
         className={clsx(
-          "relative group rounded-md overflow-hidden bg-dark-surface border transition-colors",
-          isDragging ? "border-accent shadow-lg shadow-accent/20" : "border-zinc-800 hover:border-accent"
+          "relative group rounded-md overflow-hidden bg-surface-2 border transition-colors",
+          isDragging ? "border-primary shadow-lg shadow-accent/20" : "border-white/5 hover:border-primary"
         )}
       >
         <Link to={to} className="flex flex-row items-center h-16 sm:h-20 pointer-events-auto">
@@ -47,7 +47,7 @@ export default function SortableAnimeItem({ item, activeTab, isEditingOrder, vie
             {(item.totalCanon > 0 || item.canonEpisodes > 0) && (
               <div className="absolute bottom-0 left-0 right-0 h-1 bg-zinc-800 z-10">
                 <div 
-                  className="h-full bg-accent" 
+                  className="h-full bg-primary" 
                   style={{ width: `${Math.min(100, ((item.totalWatchedAll ?? item.episodesWatched) / (item.totalEpisodes ?? item.canonEpisodes)) * 100)}%` }}
                 />
               </div>
@@ -59,7 +59,7 @@ export default function SortableAnimeItem({ item, activeTab, isEditingOrder, vie
             </h3>
             <div className="text-xs text-zinc-500 flex items-center gap-2 mt-1">
               {isFranchise ? (
-                <span className="flex items-center gap-1 text-accent"><Folder size={10} /> Franchise</span>
+                <span className="flex items-center gap-1 text-primary"><Folder size={10} /> Franchise</span>
               ) : (
                 <span className="text-zinc-400">{item.personalStatus}</span>
               )}
@@ -106,7 +106,7 @@ export default function SortableAnimeItem({ item, activeTab, isEditingOrder, vie
         isDragging ? "z-50" : ""
       )}
     >
-      <AnimeCard3DWrapper className={clsx("flex-1 relative group rounded-lg overflow-hidden bg-surface-1 border flex flex-col h-full transition-all", isDragging ? "border-primary shadow-depth-2 scale-105" : "border-zinc-800 hover:border-primary")}>
+      <AnimeCard3DWrapper className={clsx("flex-1 relative group rounded-lg overflow-hidden bg-surface-1 border flex flex-col h-full transition-all", isDragging ? "border-primary shadow-depth-2 scale-105" : "border-white/5 hover:border-primary")}>
         <Link to={to} className="flex flex-col h-full pointer-events-auto">
         <div className="aspect-[2/3] w-full bg-zinc-900 relative">
           {item.poster ? (
@@ -116,11 +116,11 @@ export default function SortableAnimeItem({ item, activeTab, isEditingOrder, vie
           )}
           
           {isFranchise ? (
-            <div className="absolute top-2 right-2 bg-accent/90 backdrop-blur-sm text-micro font-bold px-2 py-1 rounded text-white shadow flex items-center justify-center z-10">
+            <div className="absolute top-2 right-2 bg-primary/90 backdrop-blur-sm text-micro font-bold px-2 py-1 rounded text-white shadow flex items-center justify-center z-10">
               <Folder size={14} />
             </div>
           ) : (
-            <div className="absolute top-2 right-2 bg-dark-base/90 backdrop-blur-sm text-micro font-bold px-2 py-1 rounded text-white border border-zinc-700 z-10">
+            <div className="absolute top-2 right-2 bg-void/90 backdrop-blur-sm text-micro font-bold px-2 py-1 rounded text-white border border-white/10 z-10">
               {item.personalStatus}
             </div>
           )}
@@ -128,13 +128,13 @@ export default function SortableAnimeItem({ item, activeTab, isEditingOrder, vie
           {(item.totalCanon > 0 || item.canonEpisodes > 0) && (
             <div className="absolute bottom-0 left-0 right-0 h-1 bg-zinc-800 z-10">
               <div 
-                className="h-full bg-accent" 
+                className="h-full bg-primary" 
                 style={{ width: `${Math.min(100, ((item.totalWatchedAll ?? item.episodesWatched) / (item.totalEpisodes ?? item.canonEpisodes)) * 100)}%` }}
               />
             </div>
           )}
         </div>
-        <div className="p-3 flex-1 flex flex-col z-10 bg-dark-surface">
+        <div className="p-3 flex-1 flex flex-col z-10 bg-surface-2">
           <h3 className="font-medium text-xs text-zinc-100 line-clamp-2" title={item.title}>
             {item.title}
           </h3>

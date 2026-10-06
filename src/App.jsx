@@ -1,3 +1,4 @@
+import { useNavigate } from "react-router-dom";
 import { BrowserRouter as Router, Routes, Route, Link, NavLink } from 'react-router-dom';
 import { AuthProvider, useAuth } from './contexts/AuthContext.jsx';
 import AuthPage from './pages/AuthPage.jsx';
@@ -47,6 +48,22 @@ const ProtectedRoute = ({ children }) => {
   return children;
 };
 
+
+function GlobalShortcutHandler() {
+  const navigate = useNavigate();
+  useEffect(() => {
+    const handleKeyDown = (e) => {
+      if ((e.ctrlKey || e.metaKey) && e.key === 'k') {
+        e.preventDefault();
+        navigate('/search');
+      }
+    };
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [navigate]);
+  return null;
+}
+
 function AppContent() {
   const { adminMode } = useAuth();
 
@@ -84,7 +101,8 @@ function AppContent() {
   return (
     <Router>
       <div className="min-h-screen flex flex-col pb-16 sm:pb-0 pt-14 sm:pt-0">
-        <Navbar />
+        <GlobalShortcutHandler />
+          <Navbar />
 
         <main className="flex-1 content-container py-8 sm:mt-16">
           <Routes>
