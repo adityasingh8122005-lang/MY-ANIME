@@ -1,6 +1,7 @@
 import { useLoginModal } from '../contexts/LoginModalContext';
 import { useNavigate } from 'react-router-dom';
 import { X, LogIn, UserPlus } from 'lucide-react';
+import { Button } from './ui/Button';
 
 export default function LoginModal() {
   const { isOpen, closeLoginModal } = useLoginModal();
@@ -29,25 +30,9 @@ export default function LoginModal() {
         </div>
 
         <div className="flex flex-col gap-3">
-          <button 
-            onClick={() => {
-              closeLoginModal();
-              navigate('/auth');
-            }}
-            className="w-full bg-accent hover:bg-accent-hover text-white py-2.5 rounded-md font-bold transition-colors flex items-center justify-center gap-2"
-          >
-            <LogIn size={18} /> Log In
-          </button>
+          <Button onClick={() => { closeLoginModal(); navigate('/auth'); }} variant="primary" className="w-full" icon={LogIn}>Log In</Button>
           
-          <button 
-            onClick={() => {
-              closeLoginModal();
-              navigate('/auth?signup=true');
-            }}
-            className="w-full bg-dark-base hover:bg-zinc-800 border border-zinc-700 text-white py-2.5 rounded-md font-bold transition-colors flex items-center justify-center gap-2"
-          >
-            <UserPlus size={18} /> Sign Up
-          </button>
+          <Button onClick={() => { closeLoginModal(); navigate('/auth?signup=true'); }} variant="secondary" className="w-full" icon={UserPlus}>Sign Up</Button>
         </div>
       </div>
     </div>

@@ -210,8 +210,8 @@ function AppContent() {
   return (
     <Router>
       <div className="min-h-screen flex flex-col">
-        <header className="bg-dark-base/30 backdrop-blur-md border-b border-white/5 sticky top-0 z-50">
-          <div className="max-w-7xl mx-auto px-4 h-16 flex items-center justify-between">
+        <header className="glass-panel sticky top-0 z-50 border-x-0 border-t-0">
+          <div className="content-container h-16 flex items-center justify-between">
             <Link to="/" className="text-xl font-bold tracking-wider text-accent font-mono shrink-0">
               MY AN!ME
             </Link>
@@ -219,7 +219,7 @@ function AppContent() {
           </div>
         </header>
 
-        <main className="flex-1 max-w-7xl mx-auto px-4 py-8 w-full">
+        <main className="flex-1 content-container py-8">
           <Routes>
             <Route path="/auth" element={<AuthPage />} />
             <Route path="/" element={<HomePage />} />
