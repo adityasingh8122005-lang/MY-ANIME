@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Loader2, Sparkles, Heart, Compass, Plus, ArrowRight, Dices, RefreshCw } from 'lucide-react';
 import { Button } from '../components/ui/Button';
@@ -8,6 +8,12 @@ import { addFranchiseToDb } from '../services/franchiseService';
 import { getUserAnime } from '../services/userService';
 
 export default function SurpriseMePage() {
+  const isMounted = useRef(true);
+  useEffect(() => {
+    return () => {
+      isMounted.current = false;
+    };
+  }, []);
   const navigate = useNavigate();
   const [mode, setMode] = useState(null);
   const [isGenerating, setIsGenerating] = useState(false);
@@ -53,11 +59,15 @@ export default function SurpriseMePage() {
          await new Promise(resolve => setTimeout(resolve, 800));
       }
       
-      setResult(rec);
+      if (isMounted.current) {
+        setResult(rec);
+      }
     } catch (err) {
+      if (!isMounted.current) return;
       console.error(err);
       setError(err.message || 'Failed to generate recommendation.');
     } finally {
+      if (isMounted.current) setIsGenerating(false);
       setIsGenerating(false);
     }
   };
@@ -164,7 +174,7 @@ export default function SurpriseMePage() {
   return (
     <div className="max-w-5xl mx-auto pb-24 px-4 pt-4 md:pt-12">
        
-       <button onClick={() => setResult(null)} className="text-sm font-bold text-zinc-500 hover:text-white flex items-center gap-2 mb-8 transition-colors">
+       <button onClick={() => setResult(null)} className="min-h-[44px] text-sm font-bold text-zinc-500 hover:text-white flex items-center gap-2 mb-8 transition-colors">
           <ArrowRight className="rotate-180" size={16} /> Back to Discovery
        </button>
 
