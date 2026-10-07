@@ -125,7 +125,7 @@ export async function searchJikanAnime(query, filters = {}) {
 export async function getAnimeDetails(malId) {
   const local = await db.animeMetadata.get(Number(malId));
   // If we have local data but it's an ongoing/upcoming show missing schedule data, force an AniList check
-  if (local && (local.status === 'Ongoing' || local.status === 'Not Yet Aired') && !local.nextAiringEpisode) {
+  if (local && (local.status === 'Ongoing' || local.status === 'Not Yet Aired') && !local.nextAiringEpisode && !local._scheduleChecked) {
       try {
          const alRes = await fetch('https://graphql.anilist.co', {
             method: 'POST',
@@ -139,8 +139,9 @@ export async function getAnimeDetails(malId) {
             const alJson = await alRes.json();
             if (alJson.data?.Media?.nextAiringEpisode) {
                local.nextAiringEpisode = alJson.data.Media.nextAiringEpisode;
-               await db.animeMetadata.put(local);
             }
+            local._scheduleChecked = Date.now();
+            await db.animeMetadata.put(local);
          }
       } catch (e) {}
   }
