@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { NavLink, Link } from 'react-router-dom';
-import { Home, Library, Search, BarChart3, UserCircle, LogOut, Settings as SettingsIcon, ShieldAlert } from 'lucide-react';
+import { Home, Library, Search, BarChart3, UserCircle, LogOut, Settings as SettingsIcon, ShieldAlert, History } from 'lucide-react';
 import { clsx } from 'clsx';
 import { useAuth } from '../../contexts/AuthContext.jsx';
 import { useLoginModal } from '../../contexts/LoginModalContext.jsx';
