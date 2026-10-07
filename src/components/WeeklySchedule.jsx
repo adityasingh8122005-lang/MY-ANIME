@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useMemo } from 'react';
+import React, { useState, useEffect, useMemo, useRef, useCallback } from 'react';
 import { getWeeklySchedule } from '../services/jikanApi';
 import { Link } from 'react-router-dom';
 import { Calendar, Clock, Loader2, Sparkles } from 'lucide-react';
@@ -38,22 +38,44 @@ export default function WeeklySchedule() {
     return () => clearInterval(interval);
   }, []);
 
-  useEffect(() => {
-    async function fetchSchedule() {
-      try {
-        setLoading(true);
-        const data = await getWeeklySchedule(weekInfo.start, weekInfo.end);
-        setSchedule(data);
-        setError(false);
-      } catch (err) {
-        console.error(err);
-        setError(true);
-      } finally {
-        setLoading(false);
-      }
+  const lastFetchRef = useRef(0);
+  
+  const fetchSchedule = useCallback(async (force = false) => {
+    if (!force && Date.now() - lastFetchRef.current < 900000) return; // 15 minute throttle
+    try {
+      setLoading(true);
+      const data = await getWeeklySchedule(weekInfo.start, weekInfo.end);
+      setSchedule(data);
+      setError(false);
+      lastFetchRef.current = Date.now();
+    } catch (err) {
+      console.error(err);
+      setError(true);
+    } finally {
+      setLoading(false);
     }
-    fetchSchedule();
   }, [weekInfo]);
+
+  useEffect(() => {
+    fetchSchedule(true);
+  }, [fetchSchedule]);
+
+  useEffect(() => {
+    const handleVisibility = () => {
+      if (document.visibilityState === 'visible') {
+        const fresh = getWeekBoundaries();
+        if (fresh.start !== weekInfo.start) {
+          // Week boundary crossed while tab was hidden
+          window.location.reload();
+        } else {
+          // Still same week, just refetch if stale
+          fetchSchedule(false);
+        }
+      }
+    };
+    document.addEventListener('visibilitychange', handleVisibility);
+    return () => document.removeEventListener('visibilitychange', handleVisibility);
+  }, [fetchSchedule, weekInfo]);
 
   const daysMap = useMemo(() => {
     const days = Array.from({ length: 7 }, () => []);
@@ -160,12 +182,11 @@ export default function WeeklySchedule() {
           ) : (
             daysMap[selectedDay].map((item, idx) => {
               const diff = item.airingAt - currentTime;
-              const isAiringNow = diff <= 0 && diff > -3600;
-              const isPast = diff <= -3600;
+              const isPast = diff <= 0;
               
               return (
                 <Link key={`${item.id}-${idx}`} to={`/anime/${item.malId}`} className="group bg-surface-2 hover:bg-surface-3 transition-colors border border-white/5 hover:border-white/10 rounded-xl p-3 flex items-center gap-4 relative overflow-hidden focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent" aria-label={`${item.title}, episode ${item.episode}, airs at ${formatTime(item.airingAt)}`}>
-                   {isAiringNow && <div className="absolute top-0 right-0 w-32 h-32 bg-primary/20 rounded-full blur-3xl -translate-y-1/2 translate-x-1/2" />}
+                   
                    
                    <div className="w-14 text-center shrink-0">
                       <div className="text-lg font-bold text-white tabular-nums tracking-tight">{formatTime(item.airingAt)}</div>
@@ -180,9 +201,7 @@ export default function WeeklySchedule() {
                       <div className="text-[11px] font-medium text-zinc-400 flex items-center gap-2 mt-0.5">
                          <span className="bg-surface-4 px-1.5 py-0.5 rounded text-zinc-300">EP {item.episode}</span>
                          
-                         {isAiringNow ? (
-                            <span className="text-primary font-bold flex items-center gap-1" aria-live="polite"><span className="w-1.5 h-1.5 rounded-full bg-primary animate-pulse" /> AIRING NOW</span>
-                         ) : isPast ? (
+                         {isPast ? (
                             <span>Aired recently</span>
                          ) : (
                             <span className="flex items-center gap-1">In {getCountdown(item.airingAt)}</span>

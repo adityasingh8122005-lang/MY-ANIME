@@ -383,7 +383,7 @@ export async function getWeeklySchedule(startUnix, endUnix) {
   let page = 1;
   let hasNextPage = true;
 
-  while (hasNextPage && page <= 5) { // Cap at 5 pages to prevent infinite loops
+  while (hasNextPage && page <= 20) { // Cap at 5 pages to prevent infinite loops
     try {
       const query = `
         query($airingAt_greater: Int, $airingAt_lesser: Int, $page: Int) {
@@ -437,5 +437,15 @@ export async function getWeeklySchedule(startUnix, endUnix) {
     }
   }
   
-  return allSchedules;
+  
+  // Deduplicate records based on airingSchedule.id
+  const seen = new Set();
+  const deduplicated = [];
+  for (const s of allSchedules) {
+    if (!seen.has(s.id)) {
+      seen.add(s.id);
+      deduplicated.push(s);
+    }
+  }
+  return deduplicated;
 }
