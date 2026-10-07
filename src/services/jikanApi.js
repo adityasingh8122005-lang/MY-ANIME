@@ -2,6 +2,21 @@ import { db } from './db.js';
 
 const ANILIST_URL = 'https://graphql.anilist.co';
 
+async function fetchWithTimeout(resource, options = {}) {
+  const { timeout = 8000 } = options;
+  const controller = new AbortController();
+  const id = setTimeout(() => controller.abort(), timeout);
+  try {
+    const response = await fetchWithTimeout(resource, { ...options, signal: controller.signal });
+    clearTimeout(id);
+    return response;
+  } catch (error) {
+    clearTimeout(id);
+    throw error;
+  }
+}
+
+
 /**
  * Normalizes AniList API response into our internal metadata structure.
  * We continue using MAL IDs internally so it doesn't break existing user data!
@@ -51,7 +66,7 @@ export async function searchLocalAnime(query) {
  * Core fetcher for AniList GraphQL
  */
 async function fetchAnilist(query, variables) {
-  const res = await fetch(ANILIST_URL, {
+  const res = await fetchWithTimeout(ANILIST_URL, {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',
@@ -122,86 +137,100 @@ export async function searchJikanAnime(query, filters = {}) {
 /**
  * Get details for a specific anime by MAL ID using AniList.
  */
+const inflightAnimeDetails = new Map();
+
 export async function getAnimeDetails(malId) {
-  const local = await db.animeMetadata.get(Number(malId));
-  // If we have local data but it's an ongoing/upcoming show missing schedule data, force an AniList check
-  if (local && (local.status === 'Ongoing' || local.status === 'Not Yet Aired') && !local.nextAiringEpisode && !local._scheduleChecked) {
-      try {
-         const alRes = await fetch('https://graphql.anilist.co', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({
-               query: `query($idMal: Int) { Media(idMal: $idMal, type: ANIME) { nextAiringEpisode { episode airingAt timeUntilAiring } } }`,
-               variables: { idMal: Number(malId) }
-            })
-         });
-         if (alRes.ok) {
-            const alJson = await alRes.json();
-            if (alJson.data?.Media?.nextAiringEpisode) {
-               local.nextAiringEpisode = alJson.data.Media.nextAiringEpisode;
-            }
-            local._scheduleChecked = Date.now();
-            await db.animeMetadata.put(local);
-         }
-      } catch (e) {}
+  if (inflightAnimeDetails.has(malId)) {
+     return inflightAnimeDetails.get(malId);
   }
-  if (local) return local;
-
-  const res = await fetch(`https://api.jikan.moe/v4/anime/${malId}/full`);
-  if (!res.ok) throw new Error("Failed to fetch anime details from Jikan");
-  const json = await res.json();
-  const j = json.data;
-
-  // Optional Anilist Enrichment for high-res banner
-  let bannerImage = null;
-  try {
-     const alRes = await fetch('https://graphql.anilist.co', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-           query: `query($idMal: Int) { Media(idMal: $idMal, type: ANIME) { bannerImage coverImage { large } nextAiringEpisode { episode airingAt timeUntilAiring } } }`,
-           variables: { idMal: Number(malId) }
-        })
-     });
-     if (alRes.ok) {
-        const alJson = await alRes.json();
-        bannerImage = alJson.data?.Media?.bannerImage || alJson.data?.Media?.coverImage?.large;
-        if (alJson.data?.Media?.nextAiringEpisode) {
-           j.nextAiringEpisode = alJson.data.Media.nextAiringEpisode;
-        }
-     }
-  } catch (e) {
-     console.log("AniList enrichment failed, ignoring", e);
-  }
-
-  let s = j.status ? j.status.toUpperCase() : 'UNKNOWN';
-  let mappedStatus = 'Unknown';
-  if (s.includes('AIRING') || s.includes('CURRENTLY AIRING')) mappedStatus = 'Ongoing';
-  else if (s.includes('FINISHED') || s.includes('COMPLETED')) mappedStatus = 'Finished';
-  else if (s.includes('NOT YET AIRED')) mappedStatus = 'Not Yet Aired';
-
-  const normalized = {
-    malId: j.mal_id,
-    title: j.title_english || j.title,
-    alternativeTitles: [j.title, j.title_english, j.title_japanese].filter(Boolean),
-    japaneseTitle: j.title_japanese,
-    episodes: j.episodes,
-    status: mappedStatus,
-    score: j.score ? j.score.toString() : null,
-    synopsis: j.synopsis || 'No synopsis available.',
-    poster: j.images?.webp?.large_image_url || j.images?.jpg?.large_image_url,
-    bannerImage: bannerImage || j.images?.webp?.large_image_url,
-    genres: j.genres ? j.genres.map(g => g.name) : [],
-    themes: j.themes ? j.themes.map(t => t.name) : [],
-    malUrl: j.url,
-    year: j.year || null,
-    season: j.season || null,
-    duration: j.duration || null,
-    nextAiringEpisode: j.nextAiringEpisode || null
-  };
   
-  await db.animeMetadata.put(normalized);
-  return normalized;
+  const promise = (async () => {
+    const local = await db.animeMetadata.get(Number(malId));
+    // If we have local data but it's an ongoing/upcoming show missing schedule data, force an AniList check
+    if (local && (local.status === 'Ongoing' || local.status === 'Not Yet Aired') && !local.nextAiringEpisode && !local._scheduleChecked) {
+        try {
+           const alRes = await fetchWithTimeout('https://graphql.anilist.co', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({
+                 query: `query($idMal: Int) { Media(idMal: $idMal, type: ANIME) { nextAiringEpisode { episode airingAt timeUntilAiring } } }`,
+                 variables: { idMal: Number(malId) }
+              })
+           });
+           if (alRes.ok) {
+              const alJson = await alRes.json();
+              if (alJson.data?.Media?.nextAiringEpisode) {
+                 local.nextAiringEpisode = alJson.data.Media.nextAiringEpisode;
+              }
+              local._scheduleChecked = Date.now();
+              await db.animeMetadata.put(local);
+           }
+        } catch (e) {}
+    }
+    if (local) return local;
+
+    const res = await fetchWithTimeout(`https://api.jikan.moe/v4/anime/${malId}/full`);
+    if (!res.ok) throw new Error("Failed to fetch anime details from Jikan");
+    const json = await res.json();
+    const j = json.data;
+
+    let bannerImage = null;
+    try {
+       const alRes = await fetchWithTimeout('https://graphql.anilist.co', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+             query: `query($idMal: Int) { Media(idMal: $idMal, type: ANIME) { bannerImage coverImage { large } nextAiringEpisode { episode airingAt timeUntilAiring } } }`,
+             variables: { idMal: Number(malId) }
+          })
+       });
+       if (alRes.ok) {
+          const alJson = await alRes.json();
+          bannerImage = alJson.data?.Media?.bannerImage || alJson.data?.Media?.coverImage?.large;
+          if (alJson.data?.Media?.nextAiringEpisode) {
+             j.nextAiringEpisode = alJson.data.Media.nextAiringEpisode;
+          }
+       }
+    } catch (e) {
+       console.log("AniList enrichment failed, ignoring", e);
+    }
+
+    let s = j.status ? j.status.toUpperCase() : 'UNKNOWN';
+    let mappedStatus = 'Unknown';
+    if (s.includes('AIRING') || s.includes('CURRENTLY AIRING')) mappedStatus = 'Ongoing';
+    else if (s.includes('FINISHED') || s.includes('COMPLETED')) mappedStatus = 'Finished';
+    else if (s.includes('NOT YET AIRED')) mappedStatus = 'Not Yet Aired';
+
+    const normalized = {
+      malId: j.mal_id,
+      title: j.title_english || j.title,
+      alternativeTitles: [j.title, j.title_english, j.title_japanese].filter(Boolean),
+      japaneseTitle: j.title_japanese,
+      episodes: j.episodes,
+      status: mappedStatus,
+      score: j.score ? j.score.toString() : null,
+      synopsis: j.synopsis || 'No synopsis available.',
+      poster: j.images?.webp?.large_image_url || j.images?.jpg?.large_image_url,
+      bannerImage: bannerImage || j.images?.webp?.large_image_url,
+      genres: j.genres ? j.genres.map(g => g.name) : [],
+      themes: j.themes ? j.themes.map(t => t.name) : [],
+      malUrl: j.url,
+      year: j.year || null,
+      season: j.season || null,
+      duration: j.duration || null,
+      nextAiringEpisode: j.nextAiringEpisode || null
+    };
+    
+    await db.animeMetadata.put(normalized);
+    return normalized;
+  })();
+
+  inflightAnimeDetails.set(malId, promise);
+  try {
+     return await promise;
+  } finally {
+     inflightAnimeDetails.delete(malId);
+  }
 }
 
 /**
@@ -227,7 +256,7 @@ export async function getAnimeEpisodes(malId, maxWatched = 0) {
   }
 
   try {
-    const res = await fetch(`https://api.jikan.moe/v4/anime/${malId}/episodes`);
+    const res = await fetchWithTimeout(`https://api.jikan.moe/v4/anime/${malId}/episodes`);
     if (res.ok) {
       const json = await res.json();
       if (json.data && json.data.length > 0) {
@@ -352,7 +381,7 @@ export async function syncMissingMetadata(malIds) {
         }
       `;
       
-      const alRes = await fetch('https://graphql.anilist.co', {
+      const alRes = await fetchWithTimeout('https://graphql.anilist.co', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ query, variables: { idMalIn: chunk } })
@@ -429,7 +458,7 @@ export async function getWeeklySchedule(startUnix, endUnix) {
       `;
       
       const variables = { airingAt_greater: startUnix, airingAt_lesser: endUnix, page };
-      const res = await fetch('https://graphql.anilist.co', {
+      const res = await fetchWithTimeout('https://graphql.anilist.co', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ query, variables })
