@@ -88,6 +88,7 @@ export async function searchJikanAnime(query, filters = {}) {
           genres
           season
           seasonYear
+          nextAiringEpisode { airingAt episode }
         }
       }
     }
@@ -110,7 +111,7 @@ export async function searchJikanAnime(query, filters = {}) {
   
   // Only keep results that have a MAL ID to preserve database integrity
   const rawResults = data.Page.media.filter(m => m.idMal != null);
-  const results = rawResults.map(normalizeAnilistData);
+  const results = rawResults.map(m => ({ ...normalizeAnilistData(m), nextAiringEpisode: m.nextAiringEpisode || null }));
 
   // Cache new results in Dexie
   await db.animeMetadata.bulkPut(results);
@@ -123,6 +124,26 @@ export async function searchJikanAnime(query, filters = {}) {
  */
 export async function getAnimeDetails(malId) {
   const local = await db.animeMetadata.get(Number(malId));
+  // If we have local data but it's an ongoing/upcoming show missing schedule data, force an AniList check
+  if (local && (local.status === 'Ongoing' || local.status === 'Not Yet Aired') && !local.nextAiringEpisode) {
+      try {
+         const alRes = await fetch('https://graphql.anilist.co', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+               query: `query($idMal: Int) { Media(idMal: $idMal, type: ANIME) { nextAiringEpisode { episode airingAt timeUntilAiring } } }`,
+               variables: { idMal: Number(malId) }
+            })
+         });
+         if (alRes.ok) {
+            const alJson = await alRes.json();
+            if (alJson.data?.Media?.nextAiringEpisode) {
+               local.nextAiringEpisode = alJson.data.Media.nextAiringEpisode;
+               await db.animeMetadata.put(local);
+            }
+         }
+      } catch (e) {}
+  }
   if (local) return local;
 
   const res = await fetch(`https://api.jikan.moe/v4/anime/${malId}/full`);
@@ -324,6 +345,7 @@ export async function syncMissingMetadata(malIds) {
               genres
               season
               seasonYear
+              nextAiringEpisode { airingAt episode }
             }
           }
         }
@@ -362,7 +384,8 @@ export async function syncMissingMetadata(malIds) {
                 themes: [],
                 malUrl: `https://myanimelist.net/anime/${m.idMal}`,
                 year: m.seasonYear || null,
-                season: m.season ? m.season.toLowerCase() : null
+                season: m.season ? m.season.toLowerCase() : null,
+                nextAiringEpisode: m.nextAiringEpisode || null
               };
            });
            

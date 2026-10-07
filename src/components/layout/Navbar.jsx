@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { NavLink, Link } from 'react-router-dom';
-import { Home, Library, Search, BarChart3, UserCircle, LogOut, Settings as SettingsIcon, ShieldAlert, History } from 'lucide-react';
+import { Home, Library, Search, BarChart3, UserCircle, LogOut, Settings as SettingsIcon, ShieldAlert, History, Calendar } from 'lucide-react';
 import { clsx } from 'clsx';
 import { useAuth } from '../../contexts/AuthContext.jsx';
 import { useLoginModal } from '../../contexts/LoginModalContext.jsx';
@@ -155,6 +155,7 @@ export default function Navbar() {
               <NavItem to="/my-anime" icon={Library} label="Collection" />
               <NavItem to="/journey" icon={History} label="Journey" />
               <NavItem to="/search" icon={Search} label="Search" />
+              <NavItem to="/seasonal" icon={Calendar} label="Release" />
               {profile?.show_stats_in_navbar !== false && (
                 <NavItem to="/statistics" icon={BarChart3} label="Stats" />
               )}
@@ -193,6 +194,7 @@ export default function Navbar() {
           <NavItem to="/my-anime" icon={Library} label="Collection" />
               <NavItem to="/journey" icon={History} label="Journey" />
           <NavItem to="/search" icon={Search} label="Search" />
+              <NavItem to="/seasonal" icon={Calendar} label="Release" />
           {profile?.show_stats_in_navbar !== false && (
             <NavItem to="/statistics" icon={BarChart3} label="Stats" />
           )}

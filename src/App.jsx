@@ -116,6 +116,7 @@ function AppContent() {
             <Route path="/my-anime" element={<ProtectedRoute><MyAnimePage /></ProtectedRoute>} />
             <Route path="/journey" element={<ProtectedRoute><AnimeJourneyPage /></ProtectedRoute>} />
             <Route path="/search" element={<SearchPage />} />
+            <Route path="/seasonal" element={<SeasonalPage />} />
             <Route path="/statistics" element={<ProtectedRoute><StatisticsPage /></ProtectedRoute>} />
             <Route path="/surprise-me" element={<SurpriseMePage />} />
             <Route path="/settings" element={<ProtectedRoute><SettingsPage /></ProtectedRoute>} />
