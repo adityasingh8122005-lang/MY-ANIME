@@ -208,11 +208,11 @@ export async function generateRecommendation(mode) {
 
 export async function generateRecommendations(mode, count = 5) {
   const intel = await getIntelligenceData();
-  // Get DNA directly from intelligence
   const dna = { topGenres: intel ? intel.dna.map(d => ({ genre: d.genre, bonus: d.score, avgRating: d.avgRating })) : [] };
+  const topGenreNames = dna.topGenres.slice(0, 3).map(g => g.genre);
   
-  if (!intel || !dna || dna.topGenres.length === 0) {
-     const pool = await fetchCandidates(false);
+  if (!intel || !dna || topGenreNames.length === 0) {
+     const pool = await fetchAnilistCandidates([]);
      return pool.slice(0, count).map(a => ({ 
         anime: a, 
         reason: "A popular pick while we're learning your preferences.",
@@ -221,15 +221,20 @@ export async function generateRecommendations(mode, count = 5) {
   }
   
   let candidates = [];
-  if (mode === 'TASTE') {
-     candidates = await fetchCandidates(false);
-  } else if (mode === 'DIFFERENT') {
-     candidates = await fetchCandidates(false);
-  } else {
-     candidates = await fetchCandidates(true);
+  try {
+      if (mode === 'TASTE') {
+         candidates = await fetchAnilistCandidates(topGenreNames);
+      } else if (mode === 'DIFFERENT') {
+         candidates = await fetchAnilistCandidates(undefined, topGenreNames); // exclude top genres
+      } else {
+         candidates = await fetchAnilistCandidates([]);
+      }
+  } catch(e) {
+      console.log("Failed to fetch candidates", e);
+      return [];
   }
   
-  const ignoreSet = new Set(intel.nodes.map(n => n.id)); // properly mapped from intel.nodes
+  const ignoreSet = new Set(intel.nodes.map(n => n.id)); 
   
   const valid = candidates.filter(a => !ignoreSet.has(a.idMal));
   if (valid.length === 0) return [];
@@ -240,7 +245,7 @@ export async function generateRecommendations(mode, count = 5) {
       const explanations = [];
       
       if (mode === 'DIFFERENT') {
-         const newGenre = genres.find(g => !dna.topGenres.some(t => t.genre === g));
+         const newGenre = genres.find(g => !topGenreNames.includes(g));
          if (newGenre) explanations.push(`A discovery pick outside your usual genres (${newGenre}).`);
          else explanations.push("A fresh experience different from your favorites.");
          if (anime.averageScore > 80) explanations.push("Highly acclaimed by the global community.");

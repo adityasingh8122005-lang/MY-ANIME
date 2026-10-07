@@ -36,24 +36,45 @@ export default function HomePage() {
       }
       
       try {
-        const [queue, recs, history, collection, intel] = await Promise.all([
-          getSmartContinueQueue(),
-          generateRecommendations('TASTE', 6),
-          getWatchHistory(),
-          getAllUserAnime(true),
-          getIntelligenceData()
+        // 1. Fetch critical foundational data safely
+        let collection = [];
+        let history = [];
+        try {
+           collection = await getAllUserAnime(true);
+           history = await getWatchHistory();
+        } catch (e) {
+           console.error("Critical collection/history fetch failed", e);
+           // If the core database fails completely, we throw to trigger the full-page offline state
+           throw e;
+        }
+
+        // 2. Fetch derived/optional intelligence safely in parallel
+        // If these fail, we gracefully default them so the page still loads
+        const [queueResult, recsResult, intelResult] = await Promise.allSettled([
+          getSmartContinueQueue().catch(() => []),
+          generateRecommendations('TASTE', 6).catch(() => []),
+          getIntelligenceData().catch(() => null)
         ]);
+
+        const queue = queueResult.status === 'fulfilled' ? queueResult.value : [];
+        const recs = recsResult.status === 'fulfilled' ? recsResult.value : [];
+        const intel = intelResult.status === 'fulfilled' ? intelResult.value : null;
         
         // Fetch Release Intelligence for actively watching anime
         const watchingAnime = collection.filter(c => c.personalStatus === 'Watching');
         const watchingIds = watchingAnime.map(c => c.malId);
         let radar = [];
         if (watchingIds.length > 0) {
-           const schedule = await getAiringSchedule(watchingIds);
-           radar = schedule.map(s => {
-              const local = watchingAnime.find(c => c.malId === s.malId || c.malId === s.idMal);
-              return { ...s, episodesWatched: local?.episodesWatched || 0, personalStatus: 'Watching' };
-           }).filter(s => s.nextAiringEpisode);
+           try {
+               const schedule = await getAiringSchedule(watchingIds);
+               radar = schedule.map(s => {
+                  const local = watchingAnime.find(c => c.malId === s.malId || c.malId === s.idMal);
+                  return { ...s, episodesWatched: local?.episodesWatched || 0, personalStatus: 'Watching' };
+               }).filter(s => s.nextAiringEpisode);
+           } catch (e) {
+               console.error("Release radar fetch failed, degrading gracefully", e);
+               // Page remains online, just without Release Radar
+           }
         }
         
         setContinueQueue(queue);
@@ -118,11 +139,14 @@ export default function HomePage() {
   const renderHero = () => {
     if (errorState) {
        return (
-         <div className="relative w-full h-[50vh] md:h-[60vh] rounded-3xl overflow-hidden mb-12 shadow-depth-3 border border-red-500/20 flex items-center justify-center bg-surface-1">
+         <div className="relative w-full h-[40vh] md:h-[50vh] rounded-3xl overflow-hidden mb-12 shadow-depth-3 border border-red-500/10 flex items-center justify-center bg-surface-1">
             <div className="text-center z-20 px-4">
-               <h1 className="text-display-s font-bold text-white mb-4">Command Center Offline</h1>
-               <p className="text-zinc-400 mb-8 max-w-md mx-auto">We couldn't establish a connection to your anime universe. Please check your network or try again later.</p>
-               <button onClick={() => window.location.reload()} className="bg-primary text-white px-6 py-3 rounded-full font-bold hover:bg-primary/90">
+               <div className="w-16 h-16 bg-red-500/10 rounded-full flex items-center justify-center mx-auto mb-4">
+                  <Flame className="text-red-500/50" size={32} />
+               </div>
+               <h1 className="text-h3 md:text-h2 font-bold text-white mb-3">Command Center Unavailable</h1>
+               <p className="text-zinc-400 mb-6 max-w-md mx-auto text-sm md:text-base">We couldn't connect to your personal anime database. You can still explore trending anime below.</p>
+               <button onClick={() => window.location.reload()} className="bg-surface-2 text-white px-6 py-2 rounded-full font-bold hover:bg-surface-3 transition-colors text-sm border border-white/5">
                   Retry Connection
                </button>
             </div>
@@ -205,7 +229,7 @@ export default function HomePage() {
       <div className="relative z-10">
         {renderHero()}
         
-        {session && (
+        {session && !errorState && (
           <div className="flex flex-col lg:flex-row gap-8">
              {/* Main Content (Continue & Recs) */}
              <div className="flex-1">
