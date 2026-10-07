@@ -9,6 +9,8 @@ import { Loader2, PlayCircle, Star, Calendar, ChevronRight, Dices, Search, Flame
 import AnimatedAnimeBackground from '../components/AnimatedAnimeBackground';
 import { AnimeCard3DWrapper } from '../components/ui/AnimeCard3DWrapper';
 import clsx from 'clsx';
+import { getAiringSchedule } from '../services/jikanApi';
+import ReleaseRadar from '../components/ReleaseRadar';
 
 export default function HomePage() {
   const { session } = useAuth();
