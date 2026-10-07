@@ -63,10 +63,14 @@ export default function SortableAnimeItem({ item, activeTab, isEditingOrder, vie
               ) : (
                 <span className="text-zinc-400">{item.personalStatus}</span>
               )}
-              {(activeTab === 'Completed' || activeTab === 'Plan to Watch') && item.airStatus && (
+              {item.airStatus && (
                 <>
                   <span className="opacity-50">•</span>
-                  <span className={clsx(item.airStatus === 'Ongoing' ? 'text-green-500' : 'text-zinc-600')}>
+                  <span className={clsx(item.airStatus === 'Ongoing' ? 'text-green-500 font-medium' :
+                    item.airStatus === 'Hiatus' ? 'text-orange-400 font-medium' :
+                    item.airStatus === 'Cancelled' ? 'text-red-500 font-medium' :
+                    item.airStatus === 'Not Yet Aired' ? 'text-blue-400 font-medium' :
+                    'text-zinc-500')}>
                     {item.airStatus}
                   </span>
                 </>
@@ -115,15 +119,21 @@ export default function SortableAnimeItem({ item, activeTab, isEditingOrder, vie
             <div className="w-full h-full flex items-center justify-center text-zinc-600">No Image</div>
           )}
           
-          {isFranchise ? (
-            <div className="absolute top-2 right-2 bg-primary/90 backdrop-blur-sm text-micro font-bold px-2 py-1 rounded text-white shadow flex items-center justify-center z-10">
-              <Folder size={14} />
-            </div>
-          ) : (
-            <div className="absolute top-2 right-2 bg-void/90 backdrop-blur-sm text-micro font-bold px-2 py-1 rounded text-white border border-white/10 z-10">
+          <div className="absolute top-2 right-2 flex flex-col gap-1 items-end z-10">
+            <div className="bg-void/90 backdrop-blur-sm text-[10px] uppercase tracking-wider font-bold px-2 py-1 rounded text-white border border-white/10 flex items-center">
+              {isFranchise && <Folder size={12} className="mr-1" />}
               {item.personalStatus}
             </div>
-          )}
+            {item.airStatus && (
+              <div className={clsx("backdrop-blur-sm text-[10px] uppercase tracking-wider font-bold px-2 py-1 rounded border shadow-sm", item.airStatus === 'Ongoing' ? 'bg-green-500/20 text-green-400 border-green-500/30' :
+                item.airStatus === 'Hiatus' ? 'bg-orange-500/20 text-orange-400 border-orange-500/30' :
+                item.airStatus === 'Cancelled' ? 'bg-red-500/20 text-red-400 border-red-500/30' :
+                item.airStatus === 'Not Yet Aired' ? 'bg-blue-500/20 text-blue-400 border-blue-500/30' :
+                'bg-zinc-900/80 text-zinc-500 border-white/5')}>
+                {item.airStatus}
+              </div>
+            )}
+          </div>
 
           {(item.totalCanon > 0 || item.canonEpisodes > 0) && (
             <div className="absolute bottom-0 left-0 right-0 h-1 bg-zinc-800 z-10">
@@ -141,7 +151,11 @@ export default function SortableAnimeItem({ item, activeTab, isEditingOrder, vie
           <p className="text-micro text-zinc-500 mt-auto pt-2 flex justify-between items-center">
             <span>{item.totalWatchedAll ?? item.episodesWatched ?? 0} / {item.totalEpisodes ?? item.canonEpisodes ?? '?'} Eps</span>
             {(activeTab === 'Completed' || activeTab === 'Plan to Watch') && item.airStatus && (
-              <span className={clsx(item.airStatus === 'Ongoing' ? 'text-green-500' : 'text-zinc-600')}>
+              <span className={clsx(item.airStatus === 'Ongoing' ? 'text-green-500 font-medium' :
+                    item.airStatus === 'Hiatus' ? 'text-orange-400 font-medium' :
+                    item.airStatus === 'Cancelled' ? 'text-red-500 font-medium' :
+                    item.airStatus === 'Not Yet Aired' ? 'text-blue-400 font-medium' :
+                    'text-zinc-500')}>
                 {item.airStatus}
               </span>
             )}

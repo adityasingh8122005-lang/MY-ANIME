@@ -60,13 +60,26 @@ export async function getIntelligenceData() {
         }
       }
 
-      // Genres
+      // Genres (With weighted Taste metrics)
       const genres = a.metadata?.genres?.map(g => g.name) || [];
+      
+      let tasteWeight = 0;
+      if (a.personalStatus === 'Completed') tasteWeight = 3;
+      else if (a.personalStatus === 'Watching') tasteWeight = 2;
+      else if (a.personalStatus === 'On Hold') tasteWeight = 1;
+      else if (a.personalStatus === 'Dropped') tasteWeight = 0.5;
+      else if (a.personalStatus === 'Plan to Watch') tasteWeight = 0.1;
+      
+      // If they rated it highly, boost the weight regardless of status
+      if (a.personalRating >= 7) tasteWeight += 2;
+      
       genres.forEach(genre => {
         if (!genreCounts[genre]) {
-          genreCounts[genre] = { count: 0, ratingSum: 0, ratedCount: 0 };
+          genreCounts[genre] = { count: 0, rawCount: 0, ratingSum: 0, ratedCount: 0 };
         }
-        genreCounts[genre].count++;
+        genreCounts[genre].count += tasteWeight; // Weighted count for Taste Profile & DNA
+        genreCounts[genre].rawCount++; // Absolute frequency
+        
         if (a.personalRating > 0) {
           genreCounts[genre].ratingSum += a.personalRating;
           genreCounts[genre].ratedCount++;
@@ -108,6 +121,16 @@ export async function getIntelligenceData() {
     ...g,
     percentage: Math.min(100, Math.round((g.score / maxScore) * 100))
   }));
+  
+  const allGenreStats = Object.entries(genreCounts).map(([genre, data]) => {
+     return {
+        genre,
+        weightedScore: data.count,
+        rawCount: data.rawCount,
+        ratedCount: data.ratedCount,
+        avgRating: data.ratedCount > 0 ? (data.ratingSum / data.ratedCount) : null
+     };
+  }).sort((a,b) => b.weightedScore - a.weightedScore);
 
   // Insights Generation
   const insights = [];
@@ -149,6 +172,7 @@ export async function getIntelligenceData() {
     chartData,
     maxChartEps,
     nodes, // For Anime Universe
-    watchHistoryCount: watchHistory ? watchHistory.length : 0
+    watchHistoryCount: watchHistory ? watchHistory.length : 0,
+    allGenreStats
   };
 }

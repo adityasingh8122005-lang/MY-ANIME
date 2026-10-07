@@ -72,3 +72,19 @@ export async function removeFranchiseFromCustomCollection(collectionId, franchis
 
   if (error) throw error;
 }
+
+export async function getCustomCollectionHistory() {
+  const { data: { session } } = await supabase.auth.getSession();
+  if (!session) return [];
+  
+  const { data, error } = await supabase
+    .from('custom_collection_items')
+    .select('collection_id, franchise_id, created_at, custom_collections!inner(name, user_id)')
+    .eq('custom_collections.user_id', session.user.id);
+    
+  if (error) {
+    console.error(error);
+    return [];
+  }
+  return data;
+}

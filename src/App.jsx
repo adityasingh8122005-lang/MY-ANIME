@@ -10,11 +10,16 @@ import { migrateLocalToCloud } from './services/cloudMigration.js';
 import { Search, Home, Library, Settings as SettingsIcon, BarChart3, Dices, ShieldAlert } from 'lucide-react';
 import SearchPage from './pages/SearchPage.jsx';
 import AnimeDetailsPage from './pages/AnimeDetailsPage.jsx';
+import WatchHubPage from './pages/WatchHubPage.jsx';
 import HomePage from './pages/HomePage.jsx';
 import MyAnimePage from './pages/MyAnimePage.jsx';
 import SettingsPage from './pages/SettingsPage.jsx';
 import StatisticsPage from './pages/StatisticsPage.jsx';
+import TasteProfilePage from './pages/TasteProfilePage.jsx';
+import SeasonalPage from './pages/SeasonalPage.jsx';
+import JournalPage from './pages/JournalPage.jsx';
 import SurpriseMePage from './pages/SurpriseMePage.jsx';
+import AnimeJourneyPage from './pages/AnimeJourneyPage.jsx';
 import AdminPanelPage from './pages/AdminPanelPage.jsx';
 import Notifications from './components/Notifications.jsx';
 import FranchiseDetailsPage from './pages/FranchiseDetailsPage.jsx';
@@ -109,11 +114,13 @@ function AppContent() {
             <Route path="/auth" element={<AuthPage />} />
             <Route path="/" element={<HomePage />} />
             <Route path="/my-anime" element={<ProtectedRoute><MyAnimePage /></ProtectedRoute>} />
+            <Route path="/journey" element={<ProtectedRoute><AnimeJourneyPage /></ProtectedRoute>} />
             <Route path="/search" element={<SearchPage />} />
             <Route path="/statistics" element={<ProtectedRoute><StatisticsPage /></ProtectedRoute>} />
             <Route path="/surprise-me" element={<SurpriseMePage />} />
             <Route path="/settings" element={<ProtectedRoute><SettingsPage /></ProtectedRoute>} />
             <Route path="/anime/:id" element={<AnimeDetailsPage />} />
+            <Route path="/watch/:malId" element={<ProtectedRoute><WatchHubPage /></ProtectedRoute>} />
             <Route path="/franchise/:id" element={<FranchiseDetailsPage />} />
             <Route path="/profile/:username" element={<ProfilePage />} />
           </Routes>

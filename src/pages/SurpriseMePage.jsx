@@ -225,7 +225,18 @@ export default function SurpriseMePage() {
                 </div>
 
                 <div className="bg-surface-2/80 backdrop-blur border border-white/5 rounded-2xl p-6 mb-8 animate-in slide-in-from-bottom-4 duration-500 delay-500">
-                   <p className="text-body-l text-white italic">"{result.reason}"</p>
+                   <h3 className="text-sm font-bold text-primary uppercase tracking-widest mb-3">Why this anime?</h3>
+                   {result.explanations && result.explanations.length > 0 ? (
+                      <ul className="space-y-2">
+                         {result.explanations.map((exp, i) => (
+                            <li key={i} className="flex items-start gap-3 text-body-m text-white">
+                               <span className="text-primary mt-1">•</span> <span>{exp}</span>
+                            </li>
+                         ))}
+                      </ul>
+                   ) : (
+                      <p className="text-body-m text-white italic">"{result.reason}"</p>
+                   )}
                 </div>
 
              </div>

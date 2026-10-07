@@ -58,6 +58,34 @@ async function fetchAnilistCandidates(genres, isDifferent = false) {
   return json.data.Page.media.filter(m => m.idMal); // Must have MAL ID to sync with Jikan ecosystem
 }
 
+
+export function calculateTasteScore(anime, topGenres, isExploration = false) {
+    let score = anime.averageScore || 50;
+    const genres = anime.genres || [];
+    let totalBonus = 0;
+    let highestBonusGenre = null;
+    let highestBonusVal = 0;
+    
+    for (const g of genres) {
+       const tG = topGenres.find(x => x.genre === g);
+       if (tG) {
+          totalBonus += tG.bonus;
+          if (tG.bonus > highestBonusVal) {
+             highestBonusVal = tG.bonus;
+             highestBonusGenre = tG;
+          }
+       }
+    }
+    
+    if (isExploration) {
+       score += Math.min(50, -totalBonus);
+    } else {
+       score += Math.max(-20, Math.min(50, totalBonus));
+    }
+    
+    return { score, totalBonus, highestBonusGenre };
+}
+
 export async function generateRecommendation(mode) {
   // 1. Fetch User Intelligence
   const intelligence = await getIntelligenceData();
@@ -172,6 +200,76 @@ export async function generateRecommendation(mode) {
 
   return {
      anime: winner,
-     reason: recommendationReason
+     reason: recommendationReason,
+     explanations: [recommendationReason]
   };
+}
+
+
+export async function generateRecommendations(mode, count = 5) {
+  const intel = await getIntelligenceData();
+  // Get DNA directly from intelligence
+  const dna = { topGenres: intel ? intel.dna.map(d => ({ genre: d.genre, bonus: d.score, avgRating: d.avgRating })) : [] };
+  
+  if (!intel || !dna || dna.topGenres.length === 0) {
+     const pool = await fetchCandidates(false);
+     return pool.slice(0, count).map(a => ({ 
+        anime: a, 
+        reason: "A popular pick while we're learning your preferences.",
+        explanations: ["A popular pick while we're learning your preferences."]
+     }));
+  }
+  
+  let candidates = [];
+  if (mode === 'TASTE') {
+     candidates = await fetchCandidates(false);
+  } else if (mode === 'DIFFERENT') {
+     candidates = await fetchCandidates(false);
+  } else {
+     candidates = await fetchCandidates(true);
+  }
+  
+  const ignoreSet = new Set(intel.nodes.map(n => n.id)); // properly mapped from intel.nodes
+  
+  const valid = candidates.filter(a => !ignoreSet.has(a.idMal));
+  if (valid.length === 0) return [];
+  
+  const scored = valid.map(anime => {
+      const { score, totalBonus, highestBonusGenre } = calculateTasteScore(anime, dna.topGenres, mode === 'DIFFERENT');
+      const genres = anime.genres || [];
+      const explanations = [];
+      
+      if (mode === 'DIFFERENT') {
+         const newGenre = genres.find(g => !dna.topGenres.some(t => t.genre === g));
+         if (newGenre) explanations.push(`A discovery pick outside your usual genres (${newGenre}).`);
+         else explanations.push("A fresh experience different from your favorites.");
+         if (anime.averageScore > 80) explanations.push("Highly acclaimed by the global community.");
+      } else {
+         if (highestBonusGenre && highestBonusGenre.avgRating > 7) {
+            explanations.push(`You rate ${highestBonusGenre.genre} anime highly (${highestBonusGenre.avgRating.toFixed(1)}/10).`);
+         } else if (highestBonusGenre) {
+            explanations.push(`Matches your preferred genre: ${highestBonusGenre.genre}.`);
+         }
+         
+         if (totalBonus > 30) {
+            explanations.push("Strong overall match for your taste profile.");
+         }
+         
+         if (anime.averageScore > 80 && explanations.length < 3) {
+            explanations.push("Critically acclaimed.");
+         }
+         
+         if (explanations.length === 0) explanations.push("A popular pick while we're learning your preferences.");
+      }
+      
+      return { anime, finalScore: score, reason: explanations[0], explanations: explanations.slice(0, 3) };
+  });
+  
+  if (mode === 'SURPRISE') {
+      scored.sort(() => 0.5 - Math.random());
+  } else {
+      scored.sort((a,b) => b.finalScore - a.finalScore);
+  }
+  
+  return scored.slice(0, count);
 }

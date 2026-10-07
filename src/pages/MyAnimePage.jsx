@@ -36,13 +36,20 @@ export default function MyAnimePage() {
   const [ratingFilter, setRatingFilter] = useState('All');
   const [genreFilter, setGenreFilter] = useState('All');
   const [typeFilter, setTypeFilter] = useState('All');
+  const [releaseStatusFilter, setReleaseStatusFilter] = useState('All');
   const [showFilters, setShowFilters] = useState(false);
   
   const [sortBy, setSortBy] = useState(() => localStorage.getItem('myAnimeSortBy') || 'updatedAt');
   useEffect(() => { localStorage.setItem('myAnimeSortBy', sortBy); }, [sortBy]);
   
   const [isEditingOrder, setIsEditingOrder] = useState(false);
-  const [customOrder, setCustomOrder] = useState(() => JSON.parse(localStorage.getItem('myAnimeOrder')) || []);
+  const [customOrder, setCustomOrder] = useState([]);
+  useEffect(() => {
+    if (session?.user?.id) {
+      const saved = localStorage.getItem('myAnimeOrder_' + session.user.id);
+      if (saved) setCustomOrder(JSON.parse(saved));
+    }
+  }, [session]);
   const [viewMode, setViewMode] = useState(() => localStorage.getItem('myAnimeViewMode') || 'grid');
   useEffect(() => { localStorage.setItem('myAnimeViewMode', viewMode); }, [viewMode]);
 
@@ -118,13 +125,20 @@ export default function MyAnimePage() {
       const newOrder = arrayMove(filtered, oldIndex, newIndex);
       const orderIds = newOrder.map(item => item.isFranchise ? item.franchiseId : item.malId);
       setCustomOrder(orderIds);
-      localStorage.setItem('myAnimeOrder', JSON.stringify(orderIds));
+      if (session?.user?.id) localStorage.setItem('myAnimeOrder_' + session.user.id, JSON.stringify(orderIds));
       setSortBy('custom');
     }
   };
 
   // Build Filter Options
   const allGenres = Array.from(new Set(collection.flatMap(c => c.metadata?.genres?.map(g => g.name) || []))).sort();
+  
+  const stats = {
+    total: collection.length,
+    completed: collection.filter(i => i.personalStatus === 'Completed').length,
+    episodesWatched: collection.reduce((acc, curr) => acc + (curr.totalWatchedAll ?? curr.episodesWatched ?? 0), 0)
+  };
+  
   const hasActiveFilters = statusFilter !== 'All' || ratingFilter !== 'All' || genreFilter !== 'All' || typeFilter !== 'All';
 
   const clearFilters = () => {
@@ -287,6 +301,15 @@ export default function MyAnimePage() {
                              <option value="MOVIE">Movie</option>
                              <option value="OVA">OVA</option>
                           </select>
+
+                          <select value={releaseStatusFilter} onChange={e => setReleaseStatusFilter(e.target.value)} className="bg-surface-2 border border-white/5 rounded-lg p-2.5 text-sm text-white focus:outline-none focus:border-primary">
+                             <option value="All">All Releases</option>
+                             <option value="Ongoing">Ongoing</option>
+                             <option value="Hiatus">Hiatus</option>
+                             <option value="Finished">Finished</option>
+                             <option value="Cancelled">Cancelled</option>
+                             <option value="Not Yet Aired">Not Yet Aired</option>
+                          </select>
                        </div>
                     )}
                  </div>
@@ -294,7 +317,15 @@ export default function MyAnimePage() {
                  <div className="w-full xl:w-px xl:h-12 bg-white/10 hidden xl:block" />
 
                  <div className="flex items-center gap-3 pt-4 xl:pt-0 border-t border-white/5 xl:border-none">
-                    <select value={sortBy} onChange={e => { setSortBy(e.target.value); setIsEditingOrder(false); }} className="flex-1 xl:flex-none bg-surface-2 border border-white/5 rounded-lg p-2.5 text-sm text-white focus:outline-none focus:border-primary min-w-[160px]">
+                    {sortBy === 'custom' && (
+       <button 
+         onClick={() => setIsEditingOrder(!isEditingOrder)}
+         className={clsx("min-h-[44px] px-4 rounded-lg text-sm font-bold transition-colors", isEditingOrder ? "bg-primary text-white" : "bg-surface-2 border border-white/5 text-zinc-400 hover:text-white")}
+       >
+         {isEditingOrder ? 'Done' : 'Edit Order'}
+       </button>
+     )}
+     <select value={sortBy} onChange={e => { setSortBy(e.target.value); setIsEditingOrder(false); }} className="flex-1 xl:flex-none bg-surface-2 border border-white/5 rounded-lg p-2.5 text-sm text-white focus:outline-none focus:border-primary min-w-[160px]">
                        <option value="updatedAt">Recently Updated</option>
                        <option value="addedAt">Recently Added</option>
                        <option value="rating">Rating (High to Low)</option>

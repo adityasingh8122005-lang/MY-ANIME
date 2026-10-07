@@ -208,37 +208,10 @@ export async function getGroupedCollection(showNonCanonMovies = false) {
         g.personalStatus = 'Plan to Watch';
       }
       
-      let isOngoing = false;
       const f = allFranchises.find(x => x.franchiseId === g.franchiseId);
-      if (f && f.seasons) {
-        for (const season of f.seasons) {
-          if (season.status === 'RELEASING' || season.status === 'NOT_YET_RELEASED' || season.status === 'Currently Airing' || season.status === 'Releasing' || season.status === 'Not yet aired') {
-            isOngoing = true;
-            break;
-          }
-          if (season.sourceOngoing === true) {
-            isOngoing = true;
-          }
-        }
-      }
-      
-      // Fallback to checking the user's added seasons if franchise seasons lack status
-      if (!isOngoing) {
-        for (const season of g.seasons) {
-          if (season.metadata && (season.metadata.status === 'Releasing' || season.metadata.status === 'Not yet aired' || season.metadata.status === 'RELEASING' || season.metadata.status === 'Currently Airing')) {
-            isOngoing = true;
-            break;
-          }
-        }
-      }
-      
-      // Override for specific franchises known to be ongoing despite API errors
-      if (g.franchiseId === 'franchise_44511') { // Chainsaw Man
-        isOngoing = true;
-      }
-      g.airStatus = isOngoing ? 'Ongoing' : 'Finished';
+      g.airStatus = determineFranchiseAirStatus(f, g);
     } else {
-      g.airStatus = (g.metadata && (g.metadata.status === 'Releasing' || g.metadata.status === 'Not yet aired' || g.metadata.status === 'RELEASING' || g.metadata.status === 'Currently Airing')) ? 'Ongoing' : 'Finished';
+      g.airStatus = determineFranchiseAirStatus(null, g);
     }
   }
   return result;
@@ -515,5 +488,54 @@ export async function autoRebuildFranchises() {
     
   } catch (err) {
     console.error("Failed to rebuild franchises", err);
+  }
+}
+
+
+export function determineFranchiseAirStatus(f, g) {
+  if (g.isFranchise) {
+      let hasOngoing = false;
+      let hasHiatus = false;
+      let hasNotYetAired = false;
+      let hasCancelled = false;
+      let hasFinished = false;
+
+      const checkStatus = (status) => {
+        if (!status) return;
+        const s = status.toUpperCase();
+        if (s.includes('RELEASING') || s.includes('ONGOING') || s.includes('CURRENTLY AIRING')) hasOngoing = true;
+        else if (s.includes('HIATUS')) hasHiatus = true;
+        else if (s.includes('NOT_YET_RELEASED') || s.includes('NOT YET AIRED')) hasNotYetAired = true;
+        else if (s.includes('CANCELLED')) hasCancelled = true;
+        else if (s.includes('FINISHED')) hasFinished = true;
+      };
+
+      if (f && f.seasons) {
+        for (const season of f.seasons) {
+          checkStatus(season.status);
+          if (season.sourceOngoing === true) hasOngoing = true;
+        }
+      }
+      
+      for (const season of g.seasons) {
+        if (season.metadata) checkStatus(season.metadata.status);
+      }
+      
+      if (g.franchiseId === 'franchise_44511') hasOngoing = true; // Chainsaw Man override
+
+      if (hasOngoing || (hasFinished && hasNotYetAired)) return 'Ongoing';
+      else if (hasHiatus) return 'Hiatus';
+      else if (hasNotYetAired) return 'Not Yet Aired';
+      else if (hasCancelled) return 'Cancelled';
+      else if (hasFinished) return 'Finished';
+      else return 'Unknown';
+  } else {
+      let status = g.metadata?.status?.toUpperCase() || 'UNKNOWN';
+      if (status.includes('RELEASING') || status.includes('ONGOING')) return 'Ongoing';
+      else if (status.includes('HIATUS')) return 'Hiatus';
+      else if (status.includes('NOT_YET_RELEASED') || status.includes('NOT YET AIRED')) return 'Not Yet Aired';
+      else if (status.includes('CANCELLED')) return 'Cancelled';
+      else if (status.includes('FINISHED')) return 'Finished';
+      else return 'Unknown';
   }
 }

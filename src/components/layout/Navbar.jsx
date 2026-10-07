@@ -153,6 +153,7 @@ export default function Navbar() {
             <nav className="flex items-center gap-1 mr-4">
               <NavItem to="/" icon={Home} label="Home" />
               <NavItem to="/my-anime" icon={Library} label="Collection" />
+              <NavItem to="/journey" icon={History} label="Journey" />
               <NavItem to="/search" icon={Search} label="Search" />
               {profile?.show_stats_in_navbar !== false && (
                 <NavItem to="/statistics" icon={BarChart3} label="Stats" />
@@ -190,6 +191,7 @@ export default function Navbar() {
         <div className="flex items-center justify-around px-2 h-16">
           <NavItem to="/" icon={Home} label="Home" />
           <NavItem to="/my-anime" icon={Library} label="Collection" />
+              <NavItem to="/journey" icon={History} label="Journey" />
           <NavItem to="/search" icon={Search} label="Search" />
           {profile?.show_stats_in_navbar !== false && (
             <NavItem to="/statistics" icon={BarChart3} label="Stats" />

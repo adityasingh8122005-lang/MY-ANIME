@@ -9,6 +9,8 @@ function mapToCamelCase(row) {
     personalStatus: row.personal_status,
     episodesWatched: row.episodes_watched,
     personalRating: row.personal_rating,
+    personalReview: row.personal_review,
+    reviewUpdatedAt: row.review_updated_at,
     franchiseId: row.franchise_id,
     addedAt: row.added_at,
     updatedAt: row.updated_at
@@ -75,10 +77,67 @@ export async function getAllUserAnime(withMetadata = true) {
     });
   }
 
+  
+  const toCheck = camelList.filter(u => 
+    u.personalStatus === 'Completed' && 
+    metadataMap.has(u.malId) && 
+    (metadataMap.get(u.malId).status === 'Ongoing' || metadataMap.get(u.malId).status === 'Hiatus')
+  );
+  
+  if (toCheck.length > 0) {
+    // Fire and forget, or await. To prevent waterfall, we do not await it blocking the render,
+    // but the prompt says "Refresh page -> Must remain Watching". So we should await it if we want it to reflect immediately.
+    const reactivatedIds = await checkAndReactivateCompleted(toCheck);
+    if (reactivatedIds.length > 0) {
+      camelList.forEach(u => {
+        if (reactivatedIds.includes(u.malId)) u.personalStatus = 'Watching';
+      });
+    }
+  }
+
   return camelList.map(u => ({
     ...u,
     metadata: metadataMap.get(u.malId) || null
   }));
+}
+
+
+async function checkAndReactivateCompleted(toCheck) {
+  const reactivations = [];
+  for (const u of toCheck) {
+    try {
+      const res = await fetch(`https://api.jikan.moe/v4/anime/${u.malId}/episodes`);
+      if (!res.ok) continue;
+      const json = await res.json();
+      if (json.data && json.data.length > 0) {
+        // Find the first episode they haven't watched
+        const firstUnwatched = json.data.find(ep => ep.mal_id === u.episodesWatched + 1);
+        if (firstUnwatched && firstUnwatched.aired) {
+          const airedDate = new Date(firstUnwatched.aired).getTime();
+          const updatedDate = new Date(u.updatedAt).getTime();
+          // If the episode aired AFTER they last touched their status, AND it has already aired
+          if (airedDate > updatedDate && airedDate <= Date.now()) {
+            reactivations.push(u.malId);
+          }
+        }
+      }
+    } catch (e) {
+      console.log("Failed to check episode air dates for reactivation", e);
+    }
+  }
+
+  if (reactivations.length > 0) {
+    const { data: { session } } = await supabase.auth.getSession();
+    if (session) {
+      await supabase
+        .from('user_anime')
+        .update({ personal_status: 'Watching' })
+        .in('mal_id', reactivations)
+        .eq('user_id', session.user.id);
+      return reactivations;
+    }
+  }
+  return [];
 }
 
 export async function updateUserAnime(malId, updates) {
