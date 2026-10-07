@@ -35,13 +35,22 @@ export default function SearchPage() {
     setIsSearching(true);
     setHasSearched(true);
     setSelectedIndex(-1);
+    
+    // Stale response guard via sequence number
+    const currentSearchId = ++searchIdRef.current;
+    
     try {
       const rawResults = await searchJikanAnime(query, filters);
-      setResults(rawResults);
+      // Only update state if this is still the latest requested search
+      if (currentSearchId === searchIdRef.current) {
+        setResults(rawResults);
+      }
     } catch (err) {
       console.error(err);
     } finally {
-      setIsSearching(false);
+      if (currentSearchId === searchIdRef.current) {
+        setIsSearching(false);
+      }
     }
   };
 
@@ -53,6 +62,7 @@ export default function SearchPage() {
   }, [query, filters.genre, filters.format, filters.status, filters.score, filters.episodes]);
 
   const [selectedIndex, setSelectedIndex] = useState(-1);
+  const searchIdRef = React.useRef(0);
   const searchInputRef = React.useRef(null);
   
   const finalResults = React.useMemo(() => {
