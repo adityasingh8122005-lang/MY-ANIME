@@ -24,6 +24,8 @@ export default function HomePage() {
   
   // For unauthenticated users or totally empty state
   const [trending, setTrending] = useState([]);
+  const [trendingLoading, setTrendingLoading] = useState(true);
+  const [trendingError, setTrendingError] = useState(false);
 
   useEffect(() => {
     async function loadDashboard() {
@@ -198,7 +200,7 @@ export default function HomePage() {
 
   return (
     <div className="max-w-[1600px] mx-auto pb-32 relative isolate pt-12 md:pt-20 px-4">
-      {session ? <AnimatedAnimeBackground anime={continueQueue} /> : <AnimatedAnimeBackground anime={trending} />}
+      {session && !errorState && continueQueue.length > 0 ? <AnimatedAnimeBackground anime={continueQueue} /> : <AnimatedAnimeBackground anime={trending} />}
       
       <div className="relative z-10">
         {renderHero()}
@@ -317,26 +319,58 @@ export default function HomePage() {
           </div>
         )}
 
-        {/* Unauthenticated Trending Fallback */}
-        {!session && trending.length > 0 && (
-           <section>
-              <h2 className="text-h3 font-bold text-white mb-6">Trending Now</h2>
+        {/* Universal Trending Section */}
+        <section className={session ? "mt-16" : ""}>
+           <div className="flex items-center justify-between mb-6">
+              <h2 className="text-h3 font-bold text-white flex items-center gap-2">
+                 <Flame className="text-primary" size={24} /> Trending Now
+              </h2>
+           </div>
+           
+           {trendingLoading ? (
+              <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-4">
+                 {[...Array(6)].map((_, i) => (
+                    <div key={i} className="aspect-[2/3] bg-surface-2 animate-pulse rounded-xl border border-white/5" />
+                 ))}
+              </div>
+           ) : trendingError ? (
+              <div className="bg-surface-1 border border-white/5 rounded-2xl p-8 text-center text-zinc-500 shadow-depth-1">
+                 <Flame size={32} className="mx-auto mb-3 opacity-20" />
+                 <p className="font-bold text-sm">Trending unavailable</p>
+                 <p className="text-xs mt-1">We couldn't reach the discovery network.</p>
+              </div>
+           ) : trending.length === 0 ? (
+              <div className="bg-surface-1 border border-white/5 rounded-2xl p-8 text-center text-zinc-500 shadow-depth-1">
+                 <Flame size={32} className="mx-auto mb-3 opacity-20" />
+                 <p className="font-bold text-sm">No trending anime found</p>
+              </div>
+           ) : (
               <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-4">
                  {trending.map(anime => (
                     <AnimeCard3DWrapper key={anime.idMal}>
-                       <Link to={`/anime/${anime.idMal}`} className="block relative group rounded-xl overflow-hidden bg-surface-1 border border-white/5 hover:border-primary transition-all">
-                          <div className="aspect-[2/3] w-full bg-surface-2 relative">
-                             {anime.coverImage?.large && <img src={anime.coverImage.large} alt={anime.title?.english} className="w-full h-full object-cover" />}
+                       <Link to={`/anime/${anime.idMal}`} className="block relative group rounded-xl overflow-hidden bg-surface-1 border border-white/5 hover:border-primary transition-all shadow-depth-1 h-full flex flex-col focus:outline-none focus:ring-2 focus:ring-primary">
+                          <div className="aspect-[2/3] w-full bg-surface-2 relative shrink-0 overflow-hidden">
+                             {anime.coverImage?.large ? (
+                                <img src={anime.coverImage.large} alt={anime.title?.english || anime.title?.romaji} className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-700 ease-out" loading="lazy" />
+                             ) : (
+                                <div className="w-full h-full flex items-center justify-center text-xs font-bold text-zinc-600">No Image</div>
+                             )}
+                             <div className="absolute inset-0 bg-gradient-to-t from-void via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
+                             <div className="absolute bottom-2 right-2 translate-y-4 opacity-0 group-hover:translate-y-0 group-hover:opacity-100 transition-all duration-300">
+                                <div className="w-8 h-8 rounded-full bg-primary flex items-center justify-center text-white shadow-lg">
+                                   <ChevronRight size={16} />
+                                </div>
+                             </div>
                           </div>
-                          <div className="p-3 bg-surface-1">
-                             <h3 className="text-sm font-bold text-white line-clamp-1">{anime.title?.english || anime.title?.romaji}</h3>
+                          <div className="p-3 bg-surface-1 flex-1 flex flex-col justify-center">
+                             <h3 className="text-sm font-bold text-white line-clamp-2 leading-tight">{anime.title?.english || anime.title?.romaji}</h3>
                           </div>
                        </Link>
                     </AnimeCard3DWrapper>
                  ))}
               </div>
-           </section>
-        )}
+           )}
+        </section>
       </div>
     </div>
   );
