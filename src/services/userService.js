@@ -1,3 +1,5 @@
+import { db } from './db.js';
+import { syncMissingMetadata } from './jikanApi.js';
 import { supabase } from './supabase.js';
 
 // Helper to map DB snake_case to JS camelCase
@@ -57,24 +59,38 @@ export async function getAllUserAnime(withMetadata = true) {
   if (!withMetadata || camelList.length === 0) return camelList;
 
   const malIds = camelList.map(u => u.malId);
-  const { data: metadataList } = await supabase
-    .from('anime_metadata')
-    .select('*')
-    .in('mal_id', malIds);
-
-  const metadataMap = new Map();
-  if (metadataList) {
-    metadataList.forEach(m => {
-      metadataMap.set(m.mal_id, {
+  let metadataList = await db.animeMetadata.where('malId').anyOf(malIds).toArray();
+  
+  // Find missing IDs that were cleared during migration
+  const foundIds = new Set(metadataList.map(m => m.malId));
+  const missingIds = malIds.filter(id => !foundIds.has(id));
+  
+  if (missingIds.length > 0) {
+    // 1. Fetch from Supabase as a fast fallback so UI doesn't crash
+    const { data: sbMeta } = await supabase.from('anime_metadata').select('*').in('mal_id', missingIds);
+    if (sbMeta) {
+      const mappedSb = sbMeta.map(m => ({
         malId: m.mal_id,
         title: m.title,
         englishTitle: m.english_title,
         poster: m.poster,
         episodes: m.episodes,
         status: m.status,
-        duration: m.duration
-      });
-    });
+        duration: m.duration,
+        genres: [], // Missing in SB
+        bannerImage: m.poster // Fallback
+      }));
+      metadataList = metadataList.concat(mappedSb);
+    }
+    
+    // 2. Trigger background AniList sync to restore rich data (genres, banners) to IndexedDB
+    // This will fix the DNA/Taste profile on the next reload
+    syncMissingMetadata(missingIds).catch(() => {});
+  }
+  
+  const metadataMap = new Map();
+  if (metadataList) {
+    metadataList.forEach(m => metadataMap.set(m.malId, m));
   }
 
   

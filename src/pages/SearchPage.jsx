@@ -78,7 +78,7 @@ export default function SearchPage() {
       } else if (e.key === 'Enter' && selectedIndex >= 0) {
          e.preventDefault();
          const item = finalResults[selectedIndex];
-         if (item) navigate(`/anime/${item.idMal}`);
+         if (item) navigate(`/anime/${item.malId || item.idMal}`);
       } else if (e.key === 'Escape') {
          navigate(-1);
       }
@@ -178,17 +178,17 @@ export default function SearchPage() {
                 <div className="flex flex-col gap-1 pb-20 sm:pb-0">
                   {finalResults.map((anime, idx) => (
                     <Link 
-                      key={anime.idMal} to={`/anime/${anime.idMal}`} onMouseEnter={() => setSelectedIndex(idx)}
+                      key={anime.malId || anime.idMal} to={`/anime/${anime.malId || anime.idMal}`} onMouseEnter={() => setSelectedIndex(idx)}
                       className={`flex items-center gap-4 p-2 rounded-xl transition-all duration-200 ${selectedIndex === idx ? 'bg-surface-2 border border-white/5 shadow-depth-2 scale-[1.01]' : 'hover:bg-surface-2 border border-transparent'}`}
                     >
                       <div className="w-12 h-16 bg-surface-3 rounded-[8px] overflow-hidden shrink-0 shadow">
-                        {anime.coverImage?.large ? (
-                          <img src={anime.coverImage.large} alt={anime.title.english || anime.title.romaji} className="w-full h-full object-cover" />
+                        {anime.poster ? (
+                          <img src={anime.poster} alt={anime.title} className="w-full h-full object-cover" />
                         ) : <div className="w-full h-full flex items-center justify-center text-micro text-zinc-600">No Image</div>}
                       </div>
                       <div className="flex-1 min-w-0">
                         <h3 className="font-bold text-white truncate text-body-m">
-                           {anime.title.english || anime.title.romaji}
+                           {anime.title}
                            {filters.matchTaste && <span className="ml-2 inline-block"><Sparkles size={12} className="text-primary inline -mt-0.5" /></span>}
                         </h3>
                         <div className="flex items-center gap-2 mt-1">

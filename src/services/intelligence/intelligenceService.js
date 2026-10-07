@@ -25,11 +25,13 @@ export async function getIntelligenceData() {
     // If it's a franchise, iterate its parts
     const items = g.isFranchise ? g.seasons : [g];
     
+    // Franchise-level status counting
+    if (g.personalStatus && statuses[g.personalStatus] !== undefined) {
+      statuses[g.personalStatus]++;
+    }
+
     items.forEach(a => {
-      // Status
-      if (a.personalStatus && statuses[a.personalStatus] !== undefined) {
-        statuses[a.personalStatus]++;
-      }
+      // Status is already counted at franchise level
       
       const watched = a.episodesWatched || 0;
       totalEpisodes += watched;

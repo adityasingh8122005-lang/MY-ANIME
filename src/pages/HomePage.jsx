@@ -19,7 +19,8 @@ export default function HomePage() {
   const [releaseRadar, setReleaseRadar] = useState([]);
   const [recommendations, setRecommendations] = useState([]);
   const [recentActivity, setRecentActivity] = useState([]);
-  const [heroState, setHeroState] = useState(null); // { type: 'empty' | 'watching' | 'completed', anime: null }
+  const [heroState, setHeroState] = useState(null);
+  const [errorState, setErrorState] = useState(false); // { type: 'empty' | 'watching' | 'completed', anime: null }
   
   // For unauthenticated users or totally empty state
   const [trending, setTrending] = useState([]);
@@ -90,6 +91,7 @@ export default function HomePage() {
         
       } catch (e) {
         console.error(e);
+        setErrorState(true);
       } finally {
         setLoading(false);
       }
@@ -112,6 +114,20 @@ export default function HomePage() {
   if (loading) return <div className="min-h-screen flex items-center justify-center bg-void"><Loader2 className="animate-spin text-primary" size={32} /></div>;
 
   const renderHero = () => {
+    if (errorState) {
+       return (
+         <div className="relative w-full h-[50vh] md:h-[60vh] rounded-3xl overflow-hidden mb-12 shadow-depth-3 border border-red-500/20 flex items-center justify-center bg-surface-1">
+            <div className="text-center z-20 px-4">
+               <h1 className="text-display-s font-bold text-white mb-4">Command Center Offline</h1>
+               <p className="text-zinc-400 mb-8 max-w-md mx-auto">We couldn't establish a connection to your anime universe. Please check your network or try again later.</p>
+               <button onClick={() => window.location.reload()} className="bg-primary text-white px-6 py-3 rounded-full font-bold hover:bg-primary/90">
+                  Retry Connection
+               </button>
+            </div>
+         </div>
+       );
+    }
+
     if (heroState?.type === 'watching' && heroState.anime) {
       const a = heroState.anime;
       const progress = Math.round(a.progressPercent) || 0;

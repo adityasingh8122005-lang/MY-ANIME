@@ -125,25 +125,54 @@ export async function getAnimeDetails(malId) {
   const local = await db.animeMetadata.get(Number(malId));
   if (local) return local;
 
-  const graphqlQuery = `
-    query($idMal: Int) {
-      Media(idMal: $idMal, type: ANIME) {
-        idMal
-        title { english romaji native }
-        episodes
-        status
-        averageScore
-        description
-        coverImage { large }
-        genres
-        season
-        seasonYear
-      }
-    }
-  `;
+  const res = await fetch(`https://api.jikan.moe/v4/anime/${malId}/full`);
+  if (!res.ok) throw new Error("Failed to fetch anime details from Jikan");
+  const json = await res.json();
+  const j = json.data;
 
-  const data = await fetchAnilist(graphqlQuery, { idMal: Number(malId) });
-  const normalized = normalizeAnilistData(data.Media);
+  // Optional Anilist Enrichment for high-res banner
+  let bannerImage = null;
+  try {
+     const alRes = await fetch('https://graphql.anilist.co', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+           query: `query($idMal: Int) { Media(idMal: $idMal, type: ANIME) { bannerImage coverImage { large } } }`,
+           variables: { idMal: Number(malId) }
+        })
+     });
+     if (alRes.ok) {
+        const alJson = await alRes.json();
+        bannerImage = alJson.data?.Media?.bannerImage || alJson.data?.Media?.coverImage?.large;
+     }
+  } catch (e) {
+     console.log("AniList enrichment failed, ignoring", e);
+  }
+
+  let s = j.status ? j.status.toUpperCase() : 'UNKNOWN';
+  let mappedStatus = 'Unknown';
+  if (s.includes('AIRING') || s.includes('CURRENTLY AIRING')) mappedStatus = 'Ongoing';
+  else if (s.includes('FINISHED') || s.includes('COMPLETED')) mappedStatus = 'Finished';
+  else if (s.includes('NOT YET AIRED')) mappedStatus = 'Not Yet Aired';
+
+  const normalized = {
+    malId: j.mal_id,
+    title: j.title_english || j.title,
+    alternativeTitles: [j.title, j.title_english, j.title_japanese].filter(Boolean),
+    japaneseTitle: j.title_japanese,
+    episodes: j.episodes,
+    status: mappedStatus,
+    score: j.score ? j.score.toString() : null,
+    synopsis: j.synopsis || 'No synopsis available.',
+    poster: j.images?.webp?.large_image_url || j.images?.jpg?.large_image_url,
+    bannerImage: bannerImage || j.images?.webp?.large_image_url,
+    genres: j.genres ? j.genres.map(g => g.name) : [],
+    themes: j.themes ? j.themes.map(t => t.name) : [],
+    malUrl: j.url,
+    year: j.year || null,
+    season: j.season || null,
+    duration: j.duration || null
+  };
   
   await db.animeMetadata.put(normalized);
   return normalized;
@@ -262,4 +291,84 @@ export async function getAiringSchedule(malIds) {
      const normalized = normalizeAnilistData(m);
      return { ...normalized, nextAiringEpisode: m.nextAiringEpisode };
   });
+}
+
+
+export async function syncMissingMetadata(malIds) {
+  if (!malIds || malIds.length === 0) return;
+  
+  // Chunk array into groups of 40 to stay within Anilist limits
+  const chunks = [];
+  for (let i = 0; i < malIds.length; i += 40) {
+    chunks.push(malIds.slice(i, i + 40));
+  }
+
+  for (const chunk of chunks) {
+    try {
+      const query = `
+        query($idMalIn: [Int]) {
+          Page(page: 1, perPage: 50) {
+            media(idMal_in: $idMalIn, type: ANIME) {
+              idMal
+              title { english romaji native }
+              episodes
+              status
+              averageScore
+              description
+              coverImage { large }
+              bannerImage
+              genres
+              season
+              seasonYear
+            }
+          }
+        }
+      `;
+      
+      const alRes = await fetch('https://graphql.anilist.co', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ query, variables: { idMalIn: chunk } })
+      });
+      
+      if (alRes.ok) {
+        const json = await alRes.json();
+        if (json.data && json.data.Page && json.data.Page.media) {
+           const bulk = json.data.Page.media.filter(m => m.idMal != null).map(m => {
+              let s = m.status ? m.status.toUpperCase() : 'UNKNOWN';
+              let mappedStatus = 'Unknown';
+              if (s === 'RELEASING') mappedStatus = 'Ongoing';
+              else if (s === 'FINISHED') mappedStatus = 'Finished';
+              else if (s === 'NOT_YET_RELEASED') mappedStatus = 'Not Yet Aired';
+              else if (s === 'CANCELLED') mappedStatus = 'Cancelled';
+              else if (s === 'HIATUS') mappedStatus = 'Hiatus';
+              
+              return {
+                malId: m.idMal,
+                title: m.title.english || m.title.romaji,
+                alternativeTitles: [m.title.romaji].filter(Boolean),
+                japaneseTitle: m.title.native,
+                episodes: m.episodes,
+                status: mappedStatus,
+                score: m.averageScore ? (m.averageScore / 10).toFixed(2) : null,
+                synopsis: m.description ? m.description.replace(/<[^>]*>?/gm, '') : 'No synopsis available.',
+                poster: m.coverImage?.large,
+                bannerImage: m.bannerImage || m.coverImage?.large,
+                genres: m.genres || [],
+                themes: [],
+                malUrl: `https://myanimelist.net/anime/${m.idMal}`,
+                year: m.seasonYear || null,
+                season: m.season ? m.season.toLowerCase() : null
+              };
+           });
+           
+           if (bulk.length > 0) {
+              await db.animeMetadata.bulkPut(bulk);
+           }
+        }
+      }
+    } catch (e) {
+      console.log("Failed to sync chunk of missing metadata", e);
+    }
+  }
 }
