@@ -11,7 +11,7 @@ import { getImdbRating } from '../services/imdbApi';
 import { getFranchiseData } from '../services/franchiseApi';
 import { addFranchiseToDb } from '../services/franchiseService';
 import { getCustomCollections, addFranchiseToCustomCollection } from '../services/collectionService';
-import { Loader2, ArrowLeft, ExternalLink, Calendar, History, Trash2, CheckCircle, PlayCircle, List, PauseCircle, XCircle, Plus, Edit2, MessageSquare, Lightbulb, Star, Folder } from 'lucide-react';
+import { Loader2, ArrowLeft, ExternalLink, Calendar, History, Trash2, CheckCircle, PlayCircle, List, PauseCircle, XCircle, Plus, Edit2, MessageSquare, Lightbulb, Star, Folder, Clock } from 'lucide-react';
 import { Button } from '../components/ui/Button';
 import { Card } from '../components/ui/Card';
 import ChatBox from '../components/ChatBox';
@@ -304,11 +304,31 @@ export default function AnimeDetailsPage() {
 
   if (error || !anime) {
     return (
-      <div className="text-center py-12">
-        <p className="text-red-500 mb-4">{error || 'Anime not found.'}</p>
-        <button onClick={() => navigate(-1)} className="text-accent hover:underline flex items-center justify-center gap-2">
-          <ArrowLeft size={16} /> Back
-        </button>
+      <div className="min-h-[70vh] flex items-center justify-center px-4 relative isolate">
+        <div className="absolute inset-0 bg-void/50 z-0 pointer-events-none" />
+        <div className="bg-surface-1 border border-white/5 shadow-depth-3 rounded-3xl p-8 md:p-12 max-w-lg w-full text-center relative z-10">
+          <div className="w-16 h-16 bg-red-500/10 rounded-full flex items-center justify-center mx-auto mb-6">
+            <XCircle className="text-red-500/50" size={32} />
+          </div>
+          <h1 className="text-h3 font-bold text-white mb-4">
+            {error ? "Intel Retrieval Failed" : "Anime Not Found"}
+          </h1>
+          <p className="text-zinc-400 mb-8 text-sm md:text-base">
+            {error 
+              ? "We couldn't retrieve the mission details for this anime. The Jikan database might be offline or experiencing high load." 
+              : "The requested MAL ID does not exist or has been removed from the database."}
+          </p>
+          <div className="flex flex-col sm:flex-row items-center justify-center gap-4">
+            <button onClick={() => navigate(-1)} className="w-full sm:w-auto bg-surface-2 text-white px-6 py-3 rounded-full font-bold hover:bg-surface-3 transition-colors text-sm border border-white/5 flex items-center justify-center gap-2">
+              <ArrowLeft size={16} /> Retreat
+            </button>
+            {error && (
+              <button onClick={() => window.location.reload()} className="w-full sm:w-auto bg-primary text-white px-6 py-3 rounded-full font-bold hover:bg-primary/90 transition-colors text-sm">
+                Retry Connection
+              </button>
+            )}
+          </div>
+        </div>
       </div>
     );
   }
