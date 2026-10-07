@@ -2,6 +2,7 @@ import React, { useState, useEffect, useMemo } from 'react';
 import { getSeasonalAnime } from '../services/jikanApi';
 import { AnimeCard3DWrapper } from '../components/ui/AnimeCard3DWrapper';
 import { Link } from 'react-router-dom';
+import WeeklySchedule from '../components/WeeklySchedule';
 import { Loader2, ChevronLeft, ChevronRight, CalendarDays, Sparkles } from 'lucide-react';
 
 const SEASONS = ['WINTER', 'SPRING', 'SUMMER', 'FALL'];
@@ -130,7 +131,9 @@ export default function SeasonalPage() {
                 <p>The universe hasn't expanded this far yet.</p>
              </div>
           ) : (
-             <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-4 sm:gap-6">
+             <>
+               {isCurrent && <div className="mb-12"><WeeklySchedule /></div>}
+               <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-4 sm:gap-6">
                 {animeList.map(anime => {
                    const ep = anime.nextAiringEpisode;
                    
@@ -172,6 +175,7 @@ export default function SeasonalPage() {
                    );
                 })}
              </div>
+             </>
           )}
        </div>
     </div>

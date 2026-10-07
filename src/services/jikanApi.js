@@ -137,13 +137,16 @@ export async function getAnimeDetails(malId) {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-           query: `query($idMal: Int) { Media(idMal: $idMal, type: ANIME) { bannerImage coverImage { large } } }`,
+           query: `query($idMal: Int) { Media(idMal: $idMal, type: ANIME) { bannerImage coverImage { large } nextAiringEpisode { episode airingAt timeUntilAiring } } }`,
            variables: { idMal: Number(malId) }
         })
      });
      if (alRes.ok) {
         const alJson = await alRes.json();
         bannerImage = alJson.data?.Media?.bannerImage || alJson.data?.Media?.coverImage?.large;
+        if (alJson.data?.Media?.nextAiringEpisode) {
+           j.nextAiringEpisode = alJson.data.Media.nextAiringEpisode;
+        }
      }
   } catch (e) {
      console.log("AniList enrichment failed, ignoring", e);
@@ -171,7 +174,8 @@ export async function getAnimeDetails(malId) {
     malUrl: j.url,
     year: j.year || null,
     season: j.season || null,
-    duration: j.duration || null
+    duration: j.duration || null,
+    nextAiringEpisode: j.nextAiringEpisode || null
   };
   
   await db.animeMetadata.put(normalized);
@@ -371,4 +375,67 @@ export async function syncMissingMetadata(malIds) {
       console.log("Failed to sync chunk of missing metadata", e);
     }
   }
+}
+
+
+export async function getWeeklySchedule(startUnix, endUnix) {
+  let allSchedules = [];
+  let page = 1;
+  let hasNextPage = true;
+
+  while (hasNextPage && page <= 5) { // Cap at 5 pages to prevent infinite loops
+    try {
+      const query = `
+        query($airingAt_greater: Int, $airingAt_lesser: Int, $page: Int) {
+          Page(page: $page, perPage: 50) {
+            pageInfo { hasNextPage }
+            airingSchedules(airingAt_greater: $airingAt_greater, airingAt_lesser: $airingAt_lesser, sort: TIME) {
+              id
+              airingAt
+              episode
+              media {
+                idMal
+                title { english romaji native }
+                coverImage { large }
+                status
+              }
+            }
+          }
+        }
+      `;
+      
+      const variables = { airingAt_greater: startUnix, airingAt_lesser: endUnix, page };
+      const res = await fetch('https://graphql.anilist.co', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ query, variables })
+      });
+      
+      if (!res.ok) throw new Error("Anilist schedule fetch failed");
+      const json = await res.json();
+      
+      if (json.data?.Page?.airingSchedules) {
+        const mapped = json.data.Page.airingSchedules
+          .filter(s => s.media && s.media.idMal)
+          .map(s => ({
+            id: s.id,
+            airingAt: s.airingAt,
+            episode: s.episode,
+            malId: s.media.idMal,
+            title: s.media.title.english || s.media.title.romaji,
+            poster: s.media.coverImage?.large,
+            status: s.media.status
+          }));
+        allSchedules = allSchedules.concat(mapped);
+      }
+      
+      hasNextPage = json.data?.Page?.pageInfo?.hasNextPage || false;
+      page++;
+    } catch (e) {
+      console.log("Failed to fetch weekly schedule page", page, e);
+      hasNextPage = false;
+    }
+  }
+  
+  return allSchedules;
 }

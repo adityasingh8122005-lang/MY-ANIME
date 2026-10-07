@@ -1,10 +1,30 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import { useSortable } from '@dnd-kit/sortable';
 import { CSS } from '@dnd-kit/utilities';
 import { Link } from 'react-router-dom';
 import { Folder, GripVertical } from 'lucide-react';
 import { AnimeCard3DWrapper } from '../components/ui/AnimeCard3DWrapper';
 import clsx from 'clsx';
+
+
+function CardLiveCountdown({ targetUnix }) {
+  const [now, setNow] = React.useState(Math.floor(Date.now() / 1000));
+  
+  React.useEffect(() => {
+     const interval = setInterval(() => setNow(Math.floor(Date.now() / 1000)), 60000);
+     return () => clearInterval(interval);
+  }, []);
+
+  const diff = targetUnix - now;
+  if (diff < 0) return <span>Airing Now</span>;
+  
+  const d = Math.floor(diff / 86400);
+  const h = Math.floor((diff % 86400) / 3600);
+  const m = Math.floor((diff % 3600) / 60);
+  
+  if (d > 0) return <span>In {d}d {h}h</span>;
+  return <span>In {h}h {m}m</span>;
+}
 
 export default function SortableAnimeItem({ item, activeTab, isEditingOrder, viewMode }) {
   const id = item.isFranchise ? item.franchiseId : item.malId;
@@ -148,15 +168,22 @@ export default function SortableAnimeItem({ item, activeTab, isEditingOrder, vie
           <h3 className="font-medium text-xs text-zinc-100 line-clamp-2" title={item.title}>
             {item.title}
           </h3>
-          <p className="text-micro text-zinc-500 mt-auto pt-2 flex justify-between items-center">
-            <span>{item.totalWatchedAll ?? item.episodesWatched ?? 0} / {item.totalEpisodes ?? item.canonEpisodes ?? '?'} Eps</span>
-            {(activeTab === 'Completed' || activeTab === 'Plan to Watch') && item.airStatus && (
-              <span className={clsx(item.airStatus === 'Ongoing' ? 'text-green-500 font-medium' :
-                    item.airStatus === 'Hiatus' ? 'text-orange-400 font-medium' :
-                    item.airStatus === 'Cancelled' ? 'text-red-500 font-medium' :
-                    item.airStatus === 'Not Yet Aired' ? 'text-blue-400 font-medium' :
-                    'text-zinc-500')}>
-                {item.airStatus}
+          <p className="text-micro text-zinc-500 mt-auto pt-2 flex flex-col gap-1">
+            <span className="flex justify-between items-center">
+              <span>{item.totalWatchedAll ?? item.episodesWatched ?? 0} / {item.totalEpisodes ?? item.canonEpisodes ?? '?'} Eps</span>
+              {(activeTab === 'Completed' || activeTab === 'Plan to Watch') && item.airStatus && (
+                <span className={clsx(item.airStatus === 'Ongoing' ? 'text-green-500 font-medium' :
+                      item.airStatus === 'Hiatus' ? 'text-orange-400 font-medium' :
+                      item.airStatus === 'Cancelled' ? 'text-red-500 font-medium' :
+                      item.airStatus === 'Not Yet Aired' ? 'text-blue-400 font-medium' :
+                      'text-zinc-500')}>
+                  {item.airStatus}
+                </span>
+              )}
+            </span>
+            {item.nextAiringEpisode && item.airStatus === 'Ongoing' && (
+              <span className="text-[10px] bg-primary/20 text-primary border border-primary/20 px-1.5 py-0.5 rounded font-bold w-fit mt-1 truncate">
+                EP {item.nextAiringEpisode.episode} • <CardLiveCountdown targetUnix={item.nextAiringEpisode.airingAt} />
               </span>
             )}
           </p>

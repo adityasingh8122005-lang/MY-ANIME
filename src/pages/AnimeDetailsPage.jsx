@@ -38,6 +38,31 @@ const ReadMore = ({ text, maxLength = 300 }) => {
   );
 };
 
+
+function LiveCountdown({ targetUnix }) {
+  const [now, setNow] = React.useState(Math.floor(Date.now() / 1000));
+  
+  React.useEffect(() => {
+     const interval = setInterval(() => setNow(Math.floor(Date.now() / 1000)), 60000);
+     return () => clearInterval(interval);
+  }, []);
+
+  const diff = targetUnix - now;
+  if (diff < 0) return <div className="text-sm font-bold text-white flex items-center gap-1.5"><Clock size={12} className="text-primary" /> Airing Now / Past</div>;
+  
+  const d = Math.floor(diff / 86400);
+  const h = Math.floor((diff % 86400) / 3600);
+  const m = Math.floor((diff % 3600) / 60);
+  
+  const text = d > 0 ? `In ${d}d ${h}h ${m}m` : `In ${h}h ${m}m`;
+  
+  return (
+     <div className="text-sm font-bold text-white flex items-center gap-1.5">
+        <Clock size={12} className="text-primary" /> {text}
+     </div>
+  );
+}
+
 export default function AnimeDetailsPage() {
   const { session } = useAuth();
   const { openLoginModal } = useLoginModal();
@@ -423,8 +448,33 @@ export default function AnimeDetailsPage() {
             )}
             {anime.status && (
               <span className="text-zinc-300 text-caption font-medium px-2 py-1 bg-surface-2 rounded border border-white/5">
-                {anime.status}
+                {anime.status.toUpperCase()}
               </span>
+            )}
+            
+            {anime.status === 'Ongoing' && (
+               <div className="bg-surface-2 border border-primary/20 rounded-xl p-3 px-4 ml-4 flex items-center gap-4 animate-in fade-in zoom-in-95">
+                  {anime.nextAiringEpisode ? (
+                     <>
+                        <div>
+                           <div className="text-[10px] font-bold text-primary uppercase tracking-wider mb-0.5">Next Episode</div>
+                           <div className="text-sm font-bold text-white">Episode {anime.nextAiringEpisode.episode}</div>
+                        </div>
+                        <div className="w-px h-8 bg-white/10 mx-1" />
+                        <div className="text-right">
+                           <div className="text-[10px] font-medium text-zinc-400 uppercase tracking-wider mb-0.5">
+                              {new Date(anime.nextAiringEpisode.airingAt * 1000).toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' })} &middot; {new Date(anime.nextAiringEpisode.airingAt * 1000).toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', hour12: false })}
+                           </div>
+                           <LiveCountdown targetUnix={anime.nextAiringEpisode.airingAt} />
+                        </div>
+                     </>
+                  ) : (
+                     <div>
+                        <div className="text-[10px] font-bold text-primary uppercase tracking-wider mb-0.5">Next Episode</div>
+                        <div className="text-sm font-bold text-zinc-400">Schedule unavailable</div>
+                     </div>
+                  )}
+               </div>
             )}
             {anime.season && (
               <span className="text-zinc-300 text-caption font-medium px-2 py-1 bg-surface-2 rounded border border-white/5 capitalize">

@@ -210,8 +210,20 @@ export async function getGroupedCollection(showNonCanonMovies = false) {
       
       const f = allFranchises.find(x => x.franchiseId === g.franchiseId);
       g.airStatus = determineFranchiseAirStatus(f, g);
+      
+      // Find nearest upcoming episode across all seasons in the franchise
+      const upcoming = g.seasons
+         .filter(s => s.metadata?.nextAiringEpisode?.airingAt)
+         .map(s => s.metadata.nextAiringEpisode)
+         .sort((a,b) => a.airingAt - b.airingAt);
+      if (upcoming.length > 0) {
+         g.nextAiringEpisode = upcoming[0];
+      }
     } else {
       g.airStatus = determineFranchiseAirStatus(null, g);
+      if (g.metadata?.nextAiringEpisode?.airingAt) {
+         g.nextAiringEpisode = g.metadata.nextAiringEpisode;
+      }
     }
   }
   return result;
